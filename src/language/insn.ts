@@ -16,12 +16,6 @@ export enum Modifier {
   I = "I",
 }
 
-export enum PseudoOperation {
-  ORG = "ORG",
-  EQU = "EQU",
-  END = "END",
-}
-
 export enum Operation {
   DAT = "DAT",
   MOV = "MOV",
@@ -39,20 +33,50 @@ export enum Operation {
   SPL = "SPL",
 }
 
-export type Operand<ExprType> = {
-  mode: Mode;
-  value: ExprType;
-};
+export enum RawExprOp {
+  ADD = "+",
+  SUB = "-",
+  MUL = "*",
+  DIV = "/",
+  MOD = "%",
+}
 
-export type BaseInstruction<OperationType, ExprType> = {
-  operation: OperationType;
-  modifier: Modifier;
-  lhs: Operand<ExprType>;
-  rhs: Operand<ExprType>;
+export type RawExpr =
+  | number
+  | string
+  | {
+      op: RawExprOp;
+      lhs: RawExpr;
+      rhs: RawExpr;
+    };
+
+export type RawOperand = {
+  mode: Mode | null;
+  expr: RawExpr;
 };
 
 export type RawInstruction = {
+  type: null;
   labels: string[];
-} & BaseInstruction<Operation | PseudoOperation, any>;
+  operation: Operation;
+  modifier: Modifier | null;
+  a: RawOperand;
+  b: RawOperand | null;
+};
 
-export type Instruction = BaseInstruction<Operation, number>;
+export type AnyRawInstruction =
+  | RawInstruction
+  | { type: "ORG"; labels: string[]; expr: RawExpr }
+  | { type: "END"; labels: string[]; expr: RawExpr | null };
+
+export type Operand = {
+  mode: Mode;
+  value: number;
+};
+
+export type Instruction = {
+  operation: Operation;
+  modifier: Modifier;
+  a: Operand;
+  b: Operand;
+};

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build-parser": "peggy --output src/language/parser.js --format es src/language/parser.peggy",
+    "build-parser": "peggy --output src/language/parser.js --format es src/language/parser.peggy --allowed-start-rules AssemblyFile,Instruction",
     "lint": "eslint .",
     "preview": "vite preview"
   },

@@ -2,19 +2,40 @@ AssemblyFile = lines:Lines? EOF {
     return lines || []
 }
 
-Lines = h:Line t:(NL @Line)* {
+Lines = WS h:Line t:(NL WS @Line)* {
     return [h, ...t].filter(line => line !== null)
 }
 
-Line = WS @Instruction? COMMENT?
+Line = WS @LabeledInstruction? COMMENT?
 
-Instruction = labels:LabelList? code:OPCODE modifier:('.' @MODIFIER)? WS lhs:Operand? rhs:(',' WS @Operand)? {
+LabeledInstruction = labels:LabelList? insn:(Instruction / EndInstruction / OrgInstruction) {
     return {
         labels: labels || [],
-        code,
+        ...insn,
+    }
+}
+
+Instruction = operation:OPCODE modifier:('.' @MODIFIER)? WS a:Operand b:(',' WS @Operand)? {
+    return {
+        type: null,
+        operation,
         modifier,
-        lhs,
-        rhs,
+        a,
+        b,
+    }
+}
+
+EndInstruction = type:'END' WS expr:Expr? {
+    return {
+        type,
+        expr,
+    }
+}
+
+OrgInstruction = type:'ORG' WS expr:Expr {
+    return {
+        type,
+        expr,
     }
 }
 
@@ -51,11 +72,10 @@ COMMENT = ';' [^\r\n]*
 
 OPCODE = 'DAT' / 'MOV' / 'ADD' / 'SUB' / 'MUL' / 'DIV' / 'MOD'
 	/ 'JMP' / 'JMZ' / 'JMN' / 'DJN' / 'CMP' / 'SLT' / 'SPL'
-    / 'ORG' / 'EQU' / 'END'
 
 MODIFIER = 'AB' / 'BA' / [ABFXI]
 
-LABEL = !OPCODE @$([a-zA-Z_] [a-zA-Z_0-9]*) WS
+LABEL = !(OPCODE / 'ORG' / 'END') @$([a-zA-Z_] [a-zA-Z_0-9]*) WS
 
 NUMBER = digits:$([+-]? [0-9]+) WS {
     return parseInt(digits, 10)

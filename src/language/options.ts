@@ -1,5 +1,5 @@
+import { assembleInstruction } from "./assemble";
 import { Instruction } from "./insn";
-import { parseInstruction } from "./parse";
 
 export type RandomSeparation = "RANDOM";
 
@@ -46,7 +46,7 @@ export type VmOptions = {
 export const icw86Options: VmOptions = {
   coreSize: 8192,
   cyclesBeforeTie: 100000,
-  initialInstruction: parseInstruction("DAT.F #0, #0"),
+  initialInstruction: assembleInstruction("DAT.F #0, #0"),
   instructionLimit: 300,
   maxNumTasks: 64,
   minimumSeparation: 300,
@@ -59,7 +59,7 @@ export const icw86Options: VmOptions = {
 export const kothOptions: VmOptions = {
   coreSize: 8000,
   cyclesBeforeTie: 80000,
-  initialInstruction: parseInstruction("DAT.F $0, $0"),
+  initialInstruction: assembleInstruction("DAT.F $0, $0"),
   instructionLimit: 100,
   maxNumTasks: 8000,
   minimumSeparation: 100,

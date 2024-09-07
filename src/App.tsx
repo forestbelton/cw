@@ -1,10 +1,8 @@
+import { useCallback } from "react";
 import ProgramEditor from "./components/ProgramEditor";
-import { icw86Options } from "./language/options";
-import { parseProgram } from "./language/parse";
-import { VM } from "./language/vm";
+import { assemble } from "./language/assemble";
 
-const sourceCode = `
-;redcode
+const sourceCode = `;redcode
    
 ;name          Dwarf
 ;author        A. K. Dewdney
@@ -17,25 +15,23 @@ const sourceCode = `
                                    ; the label "start" should be the
                                    ; first to execute.
      
-step    EQU      4                 ; Replaces all occurrences of "step"
-                                   ; with the character "4".
-     
 target  DAT.F   #0,     #0         ; Pointer to target instruction.
-start   ADD.AB  #step,   target    ; Increments pointer by step.
+start   ADD.AB  #4,     target     ; Increments pointer by step.
         MOV.AB  #0,     @target    ; Bombs target instruction.
-        JMP.A    start             ; Same as JMP.A -2.  Loops back to
+        JMP.A    4                 ; Same as JMP.A -2.  Loops back to
                                    ; the instruction labelled "start".
+        END
 `;
 
 const App = () => {
-  const warrior1 = parseProgram(sourceCode);
-
-  const vm = VM.create(icw86Options, [warrior1, warrior1]);
-  console.log(vm);
+  const onSave = useCallback((value: string) => {
+    const program = assemble(value);
+    console.log(program);
+  }, []);
 
   return (
     <div>
-      <ProgramEditor />
+      <ProgramEditor defaultValue={sourceCode} onSave={onSave} />
     </div>
   );
 };

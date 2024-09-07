@@ -1,14 +1,13 @@
-import { Instruction } from "./insn";
+import { Instruction, Operation } from "./insn";
 import { VmOptions } from "./options";
 import { Warrior } from "./warrior";
-
-type WarriorID = number;
 
 export class VM {
   options: VmOptions;
   warriors: Warrior[];
   core: Instruction[];
-  taskQueues: Record<WarriorID, number[]>;
+  taskQueues: Record<string, number[]>;
+  numCycles: number;
 
   private constructor(options: VmOptions, warriors: Warrior[]) {
     this.options = options;
@@ -16,6 +15,7 @@ export class VM {
     this.core = Array(options.coreSize).fill(options.initialInstruction);
 
     this.taskQueues = {};
+    this.numCycles = 0;
 
     let nextPc = 0;
     for (let warriorId = 0; warriorId < warriors.length; ++warriorId) {
@@ -44,5 +44,59 @@ export class VM {
     // TODO: Validate separation > 0 or RANDOM
     // TODO: Validate numWarriors = warriors.length
     return new VM(options, warriors);
+  }
+
+  executeCycle() {
+    const deadWarriorIDs = Object.entries(this.taskQueues).flatMap(
+      ([warriorID, taskQueue]) => {
+        this.executeStep(taskQueue);
+        return taskQueue.length === 0 ? [warriorID] : [];
+      }
+    );
+
+    deadWarriorIDs.forEach((warriorID) => {
+      delete this.taskQueues[warriorID];
+    });
+
+    this.numCycles += 1;
+  }
+
+  executeStep(taskQueue: number[]) {
+    const pc = taskQueue.shift();
+    if (typeof pc === "undefined") {
+      return;
+    }
+
+    const insn = this.core[pc];
+    switch (insn.operation) {
+      case Operation.DAT:
+        break;
+      case Operation.MOV:
+        break;
+      case Operation.ADD:
+        break;
+      case Operation.SUB:
+        break;
+      case Operation.MUL:
+        break;
+      case Operation.DIV:
+        break;
+      case Operation.MOD:
+        break;
+      case Operation.JMP:
+        break;
+      case Operation.JMZ:
+        break;
+      case Operation.JMN:
+        break;
+      case Operation.DJN:
+        break;
+      case Operation.CMP:
+        break;
+      case Operation.SLT:
+        break;
+      case Operation.SPL:
+        break;
+    }
   }
 }
