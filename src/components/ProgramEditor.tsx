@@ -2,7 +2,7 @@ import { aura } from "@uiw/codemirror-theme-aura";
 import CodeMirror, { ViewUpdate } from "@uiw/react-codemirror";
 import { useCallback, useState } from "react";
 import Button from "./Button";
-import { cwHighlighter } from "../highlighter";
+import { cwHighlighter } from "../editor/highlighter";
 
 type ProgramEditorProps = {
   defaultValue?: string;
