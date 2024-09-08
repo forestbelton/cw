@@ -51,16 +51,27 @@ Operand = mode:[#$@<>]? expr:Expr {
 }
 
 Expr = lhs:MulExpr rhs:([+-] WS MulExpr)* {
+    const OP_NAMES = {
+        "+": "ADD",
+        "-": "SUB",
+    }
+
     return rhs.reduce((result, element) => ({
-        op: element[0],
+        op: OP_NAMES[element[0]],
         lhs: result,
         rhs: element[2],
     }), lhs)
 }
 
 MulExpr = lhs:Term rhs:([*/%] WS Term)* {
+    const OP_NAMES = {
+        "*": "MUL",
+        "/": "DIV",
+        "%": "MOD",
+    }
+
     return rhs.reduce((result, element) => ({
-        op: element[0],
+        op: OP_NAMES[element[0]],
         lhs: result,
         rhs: element[2],
     }), lhs)

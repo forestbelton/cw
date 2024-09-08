@@ -288,15 +288,26 @@ function peg$parse(input, options) {
     }
 };
   var peg$f8 = function(lhs, rhs) {
+    const OP_NAMES = {
+        "+": "ADD",
+        "-": "SUB",
+    }
+
     return rhs.reduce((result, element) => ({
-        op: element[0],
+        op: OP_NAMES[element[0]],
         lhs: result,
         rhs: element[2],
     }), lhs)
 };
   var peg$f9 = function(lhs, rhs) {
+    const OP_NAMES = {
+        "*": "MUL",
+        "/": "DIV",
+        "%": "MOD",
+    }
+
     return rhs.reduce((result, element) => ({
-        op: element[0],
+        op: OP_NAMES[element[0]],
         lhs: result,
         rhs: element[2],
     }), lhs)

@@ -1,10 +1,11 @@
 import { DEFAULT_MODE, DEFAULT_MODIFIERS, DEFAULT_OPERAND } from "./defaults";
 import {
   AnyRawInstruction,
+  ArithmeticOperation,
+  BINOPS,
   Instruction,
   Operation,
   RawExpr,
-  RawExprOp,
   RawInstruction,
   RawOperand,
 } from "./insn";
@@ -12,14 +13,6 @@ import * as parser from "./parser";
 import { Warrior } from "./warrior";
 
 type Symbols = Record<string, number>;
-
-const BINOPS: Record<RawExprOp, (lhs: number, rhs: number) => number> = {
-  [RawExprOp.ADD]: (lhs, rhs) => lhs + rhs,
-  [RawExprOp.SUB]: (lhs, rhs) => lhs - rhs,
-  [RawExprOp.MUL]: (lhs, rhs) => lhs * rhs,
-  [RawExprOp.DIV]: (lhs, rhs) => Math.floor(lhs / rhs),
-  [RawExprOp.MOD]: (lhs, rhs) => lhs % rhs,
-};
 
 export const assembleInstruction = (sourceCode: string): Instruction => {
   const raw = parser.parse(sourceCode, {
@@ -62,6 +55,11 @@ export const assemble = (sourceCode: string): Warrior => {
         code.push(assembleRawInstruction(insn, symbols));
         break;
     }
+  }
+
+  if (startIndex < 0 || startIndex >= code.length) {
+    // ORG/END operand outside of program
+    throw new Error();
   }
 
   return {

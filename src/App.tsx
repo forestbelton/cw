@@ -1,6 +1,8 @@
 import { useCallback } from "react";
 import ProgramEditor from "./components/ProgramEditor";
 import { assemble } from "./language/assemble";
+import { VM } from "./language/vm";
+import { icw86Options } from "./language/options";
 
 const sourceCode = `;redcode
    
@@ -27,6 +29,9 @@ const App = () => {
   const onSave = useCallback((value: string) => {
     const program = assemble(value);
     console.log(program);
+
+    const vm = VM.create(icw86Options, [program, program]);
+    vm.executeCycle();
   }, []);
 
   return (

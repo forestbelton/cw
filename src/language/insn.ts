@@ -33,19 +33,34 @@ export enum Operation {
   SPL = "SPL",
 }
 
-export enum RawExprOp {
-  ADD = "+",
-  SUB = "-",
-  MUL = "*",
-  DIV = "/",
-  MOD = "%",
-}
+export type ArithmeticOperation =
+  | Operation.ADD
+  | Operation.SUB
+  | Operation.MUL
+  | Operation.DIV
+  | Operation.MOD;
+
+export const BINOPS: Record<
+  ArithmeticOperation,
+  (lhs: number, rhs: number) => number
+> = {
+  [Operation.ADD]: (lhs, rhs) => lhs + rhs,
+  [Operation.SUB]: (lhs, rhs) => lhs - rhs,
+  [Operation.MUL]: (lhs, rhs) => lhs * rhs,
+  [Operation.DIV]: (lhs, rhs) => Math.floor(lhs / rhs),
+  [Operation.MOD]: (lhs, rhs) => lhs % rhs,
+};
+
+export const isDivOp = (
+  op: ArithmeticOperation
+): op is Operation.DIV | Operation.MOD =>
+  op === Operation.DIV || op === Operation.MOD;
 
 export type RawExpr =
   | number
   | string
   | {
-      op: RawExprOp;
+      op: ArithmeticOperation;
       lhs: RawExpr;
       rhs: RawExpr;
     };
@@ -80,3 +95,6 @@ export type Instruction = {
   a: Operand;
   b: Operand;
 };
+
+export const prettyPrint = ({ operation, modifier, a, b }: Instruction) =>
+  `${operation}.${modifier} ${a.mode}${a.value}, ${b.mode}${b.value}`;
