@@ -1,3 +1,17 @@
+// NB: Potential encoding of instructions
+//
+// Byte 1: Opcode and modifier
+// xxxx yyy0
+// ^    ^
+// |----|--- 4-bit opcode
+//      |--- 3-bit modifier
+//
+// Bytes 2-3, 4-5: A-operand, B-operand
+// nnnn nnnn nnnn nmmm
+// ^               ^
+// |---------------|-- 13-bit number
+//                 |-- 3-bit mode
+
 export enum Mode {
   Immediate = "#",
   Direct = "$",
