@@ -112,3 +112,15 @@ export type Instruction = {
 
 export const prettyPrint = ({ operation, modifier, a, b }: Instruction) =>
   `${operation}.${modifier} ${a.mode}${a.value}, ${b.mode}${b.value}`;
+
+export const cloneInsn = ({
+  operation,
+  modifier,
+  a,
+  b,
+}: Instruction): Instruction => ({
+  operation,
+  modifier,
+  a: { ...a },
+  b: { ...b },
+});

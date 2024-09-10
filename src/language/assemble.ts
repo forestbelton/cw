@@ -97,8 +97,8 @@ const assembleRawInstruction = (
   pc: number,
   symbols: Symbols
 ): Instruction => {
-  let a = raw.a;
-  let b = raw.b;
+  const { operation } = raw;
+  let { a, b } = raw;
 
   /** If there is only one operand associated with a DAT instruction, this
    * operand is assembled into the B-mode and B-address fields, while #0 is
@@ -107,16 +107,13 @@ const assembleRawInstruction = (
    * A-address fields and #0 is assembled into the B-mode and B-address fields.
    */
   if (b === null) {
-    if (raw.operation === Operation.DAT) {
+    if (operation === Operation.DAT) {
       a = DEFAULT_OPERAND;
       b = raw.a;
     } else {
       b = DEFAULT_OPERAND;
     }
   }
-
-  const aValue = evaluateExpr(a.expr, pc, symbols);
-  const bValue = evaluateExpr(b.expr, pc, symbols);
 
   // A missing (null or blank) mode assembles as '$' does.
   const aMode = a.mode || DEFAULT_MODE;
@@ -128,7 +125,7 @@ const assembleRawInstruction = (
    */
   let modifier = raw.modifier;
   if (modifier === null) {
-    for (const _default of DEFAULT_MODIFIERS[raw.operation]) {
+    for (const _default of DEFAULT_MODIFIERS[operation]) {
       modifier = _default.match(aMode, bMode);
       if (modifier !== null) {
         break;
@@ -142,10 +139,16 @@ const assembleRawInstruction = (
   }
 
   return {
-    operation: raw.operation,
+    operation,
     modifier,
-    a: { mode: aMode, value: aValue },
-    b: { mode: bMode, value: bValue },
+    a: {
+      mode: aMode,
+      value: evaluateExpr(a.expr, pc, symbols),
+    },
+    b: {
+      mode: bMode,
+      value: evaluateExpr(b.expr, pc, symbols),
+    },
   };
 };
 

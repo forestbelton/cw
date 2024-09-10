@@ -1,6 +1,7 @@
 import {
   ArithmeticOperation,
   BINOPS,
+  cloneInsn,
   Instruction,
   isDivOp,
   Mode,
@@ -11,20 +12,33 @@ import {
 import { VmOptions } from "./options";
 import { Warrior } from "./warrior";
 
+export enum MatchStatus {
+  WIN = "WIN",
+  TIE = "TIE",
+}
+
+export type MatchResult =
+  | {
+      status: MatchStatus.WIN;
+      winnerID: number;
+      numCycles: number;
+    }
+  | {
+      status: MatchStatus.TIE;
+      numCycles: number;
+    };
+
 export class VM {
   options: VmOptions;
   warriors: Warrior[];
   core: Instruction[];
   taskQueues: Record<string, number[]>;
-  numCycles: number;
 
   private constructor(options: VmOptions, warriors: Warrior[]) {
     this.options = options;
     this.warriors = warriors;
     this.core = Array(options.coreSize).fill(options.initialInstruction);
-
     this.taskQueues = {};
-    this.numCycles = 0;
 
     let nextPc = 0;
     for (let warriorId = 0; warriorId < warriors.length; ++warriorId) {
@@ -53,8 +67,30 @@ export class VM {
     // TODO: Validate read/write distance (> 0, multiple of core size)
     // TODO: Validate minimum separation > 0
     // TODO: Validate separation > 0 or RANDOM
-    // TODO: Validate numWarriors = warriors.length
+    // TODO: Validate numWarriors = warriors.length && numWarriors > 1
     return new VM(options, warriors);
+  }
+
+  execute(): MatchResult {
+    let numCycles = 0;
+
+    while (
+      numCycles < this.options.cyclesBeforeTie &&
+      Object.keys(this.taskQueues).length > 1
+    ) {
+      this.executeCycle();
+      numCycles++;
+    }
+
+    if (
+      numCycles === this.options.cyclesBeforeTie ||
+      Object.keys(this.taskQueues).length === 0
+    ) {
+      return { status: MatchStatus.TIE, numCycles };
+    }
+
+    const winnerID = parseInt(Object.keys(this.taskQueues)[0], 10);
+    return { status: MatchStatus.WIN, winnerID, numCycles };
   }
 
   executeCycle() {
@@ -68,8 +104,6 @@ export class VM {
     deadWarriorIDs.forEach((warriorID) => {
       delete this.taskQueues[warriorID];
     });
-
-    this.numCycles += 1;
   }
 
   clamp(address: number, limit: number) {
@@ -81,11 +115,14 @@ export class VM {
   }
 
   getInsn(addr: number) {
+    if (addr < 0) {
+      addr += this.core.length;
+    }
     return this.core[addr % this.core.length];
   }
 
   setInsn(addr: number, insn: Instruction) {
-    return (this.core[addr % this.core.length] = insn);
+    this.core[addr % this.core.length] = insn;
   }
 
   resolveOperand(pc: number, operand: "a" | "b") {
@@ -94,7 +131,7 @@ export class VM {
     let postIncrementPointer: number | undefined;
 
     const insn = this.core[pc];
-    const { value, mode } = insn[operand];
+    const { mode, value } = insn[operand];
     if (mode !== Mode.Immediate) {
       readPointer = this.clamp(value, this.options.readDistance);
       writePointer = this.clamp(value, this.options.writeDistance);
@@ -129,7 +166,7 @@ export class VM {
     }
 
     return {
-      insn: this.getInsn(pc + readPointer),
+      insn: cloneInsn(this.getInsn(pc + readPointer)),
       readPointer,
       writePointer,
     };
@@ -155,28 +192,27 @@ export class VM {
         const dest = this.getInsn(pc + b.writePointer);
         switch (insn.modifier) {
           case Modifier.A:
-            dest.a.value = insn.a.value;
+            dest.a.value = a.insn.a.value;
             break;
           case Modifier.B:
-            dest.b.value = insn.b.value;
+            dest.b.value = a.insn.b.value;
             break;
           case Modifier.AB:
-            dest.b.value = insn.a.value;
+            dest.b.value = a.insn.a.value;
             break;
           case Modifier.BA:
-            dest.a.value = insn.b.value;
+            dest.a.value = a.insn.b.value;
             break;
           case Modifier.F:
-            dest.a.value = insn.a.value;
-            dest.b.value = insn.b.value;
+            dest.a.value = a.insn.a.value;
+            dest.b.value = a.insn.b.value;
             break;
           case Modifier.X:
-            const temp = insn.b.value;
-            dest.b.value = insn.a.value;
-            dest.a.value = temp;
+            dest.b.value = a.insn.a.value;
+            dest.a.value = a.insn.b.value;
             break;
           case Modifier.I:
-            this.setInsn(pc + b.writePointer, insn);
+            this.setInsn(pc + b.writePointer, a.insn);
             break;
         }
         taskQueue.push((pc + 1) % this.core.length);
@@ -187,13 +223,16 @@ export class VM {
       case Operation.MUL:
       case Operation.DIV:
       case Operation.MOD:
-        this.executeArithOp(
+        const shouldQueue = this.executeArithOp(
           insn.operation,
           insn.modifier,
           this.getInsn(pc + b.writePointer),
           a.insn,
           b.insn
         );
+        if (shouldQueue) {
+          taskQueue.push((pc + 1) % this.core.length);
+        }
         break;
       case Operation.JMP:
         taskQueue.push((pc + a.readPointer) % this.core.length);
@@ -246,18 +285,30 @@ export class VM {
         dest.b.value = op(b.a.value, a.b.value);
         break;
       case Modifier.BA:
+        if (isDivOp(operation) && a.a.value === 0) {
+          shouldQueue = false;
+          break;
+        }
         dest.a.value = op(b.b.value, a.a.value);
         break;
       case Modifier.F:
       case Modifier.I:
+        if (isDivOp(operation) && (a.a.value === 0 || a.b.value === 0)) {
+          shouldQueue = false;
+          break;
+        }
         dest.a.value = op(b.a.value, a.a.value);
         dest.b.value = op(b.b.value, a.b.value);
         break;
       case Modifier.X:
-        const temp = b.b.value;
+        if (isDivOp(operation) && (a.a.value === 0 || a.b.value === 0)) {
+          shouldQueue = false;
+          break;
+        }
         dest.b.value = op(b.a.value, a.b.value);
-        dest.a.value = op(temp, a.a.value);
+        dest.a.value = op(b.b.value, a.a.value);
         break;
     }
+    return shouldQueue;
   }
 }

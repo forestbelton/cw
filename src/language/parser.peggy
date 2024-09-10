@@ -2,7 +2,7 @@ AssemblyFile = lines:Lines? EOF {
     return lines || []
 }
 
-Lines = WS h:Line t:(NL WS @Line)* {
+Lines = h:Line t:(NL @Line)* {
     return [h, ...t].filter(line => line !== null)
 }
 
