@@ -35,8 +35,6 @@ a:hover {
 body {
   margin: 0;
   min-width: 320px;
-  padding: 2rem;
-  box-sizing: border-box;
 }
 
 @media (prefers-color-scheme: light) {

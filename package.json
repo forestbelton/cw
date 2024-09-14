@@ -16,7 +16,8 @@
     "@uiw/codemirror-theme-aura": "^4.23.1",
     "@uiw/react-codemirror": "^4.23.1",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "wouter": "^2.11.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",

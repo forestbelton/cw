@@ -1,39 +1,24 @@
-import { useCallback } from "react";
-import ProgramEditor from "./components/ProgramEditor";
-import { assemble } from "./language/assemble";
+import { Router } from "./Router";
+import NavigationBar from "./components/NavigationBar";
 
-const sourceCode = `;redcode
-   
-;name          Dwarf
-;author        A. K. Dewdney
-;version       94.1
-;date          April 29, 1993
-     
-;strategy      Bombs every fourth instruction.
-     
-        ORG     start              ; Indicates the instruction with
-                                   ; the label "start" should be the
-                                   ; first to execute.
-     
-target  DAT.F   #0,     #0         ; Pointer to target instruction.
-start   ADD.AB  #4,     target     ; Increments pointer by step.
-        MOV.AB  #0,     @target    ; Bombs target instruction.
-        JMP.A    4                 ; Same as JMP.A -2.  Loops back to
-                                   ; the instruction labelled "start".
-        END
-`;
-
-const App = () => {
-  const onSave = useCallback((value: string) => {
-    const program = assemble(value);
-    console.log(program);
-  }, []);
-
-  return (
-    <div>
-      <ProgramEditor defaultValue={sourceCode} onSave={onSave} />
+const App = () => (
+  <div
+    style={{
+      height: "100%",
+      display: "flex",
+    }}
+  >
+    <NavigationBar />
+    <div
+      style={{
+        boxSizing: "border-box",
+        flexGrow: 1,
+        padding: "2rem 2rem 0 2rem",
+      }}
+    >
+      <Router />
     </div>
-  );
-};
+  </div>
+);
 
 export default App;

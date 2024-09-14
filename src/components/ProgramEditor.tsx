@@ -9,7 +9,12 @@ type ProgramEditorProps = {
   onCancel?: () => void;
   onSave?: (value: string) => void;
   readOnly?: boolean;
+  saveButtonLabel?: string;
 };
+
+const DEFAULT_SAVE_BUTTON_LABEL = "Save";
+
+const DEFAULT_PROGRAM = "";
 
 const DEFAULT_CALLBACK = () => {};
 
@@ -18,8 +23,9 @@ const ProgramEditor = ({
   onCancel,
   onSave,
   readOnly,
+  saveButtonLabel,
 }: ProgramEditorProps) => {
-  const [value, setValue] = useState(defaultValue ?? "");
+  const [value, setValue] = useState(defaultValue ?? DEFAULT_PROGRAM);
   const onChange = useCallback(
     (value: string, _viewUpdate: ViewUpdate) => setValue(value),
     [setValue]
@@ -59,8 +65,11 @@ const ProgramEditor = ({
           gap: "1rem",
         }}
       >
-        <Button label="Save" onClick={() => onSave(value)} />
         <Button label="Cancel" onClick={() => onCancel()} />
+        <Button
+          label={saveButtonLabel ?? DEFAULT_SAVE_BUTTON_LABEL}
+          onClick={() => onSave(value)}
+        />
       </div>
     </div>
   );
