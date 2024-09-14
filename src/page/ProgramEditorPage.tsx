@@ -1,30 +1,11 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ProgramEditor from "../components/ProgramEditor";
-import { assemble } from "../language/assemble";
 import { Redirect, useLocation } from "wouter";
-
-const sourceCode = `;redcode
-   
-;name          Dwarf
-;author        A. K. Dewdney
-;version       94.1
-;date          April 29, 1993
-     
-;strategy      Bombs every fourth instruction.
-     
-        ORG     start              ; Indicates the instruction with
-                                   ; the label "start" should be the
-                                   ; first to execute.
-     
-target  DAT.F   #0,     #0         ; Pointer to target instruction.
-start   ADD.AB  #4,     target     ; Increments pointer by step.
-        MOV.I   $0,    @target     ; Bombs target instruction.
-        JMP.A    start             ; Same as JMP.A -2.  Loops back to
-                                   ; the instruction labelled "start".
-        END
-`;
+import { API_CLIENT } from "../api";
 
 const PROGRAM_ID_REGEX = /^\/programs\/(.*)$/;
+
+const isNewProgram = (id: string) => id === "new";
 
 const ProgramEditorPage = () => {
   const [location, setLocation] = useLocation();
@@ -35,22 +16,49 @@ const ProgramEditorPage = () => {
   }
 
   const programId = match[1];
-  const saveButtonLabel = programId === "new" ? "Create" : "Save";
+
+  const [loading, setLoading] = useState(true);
+  const [sourceCode, setSourceCode] = useState("");
+
+  useEffect(() => {
+    if (isNewProgram(programId)) {
+      setLoading(false);
+      setSourceCode("");
+    } else {
+      API_CLIENT.getProgram(programId).then((program) => {
+        setLoading(false);
+        if (program === null) {
+          setLocation("/programs");
+          return;
+        }
+        setSourceCode(program.sourceCode);
+      });
+    }
+  }, [programId]);
 
   const onCancel = useCallback(() => setLocation("/programs"), []);
-  const onSave = useCallback((value: string) => {
-    const program = assemble(value);
-    console.log(program);
-  }, []);
+  const onSave = useCallback(
+    async (sourceCode: string) => {
+      isNewProgram(programId)
+        ? await API_CLIENT.createProgram(sourceCode)
+        : await API_CLIENT.updateProgram(programId, sourceCode);
+      setLocation("/programs");
+    },
+    [programId]
+  );
 
   return (
     <div>
-      <ProgramEditor
-        defaultValue={sourceCode}
-        onCancel={onCancel}
-        onSave={onSave}
-        saveButtonLabel={saveButtonLabel}
-      />
+      {loading ? (
+        <span>Loading...</span>
+      ) : (
+        <ProgramEditor
+          defaultValue={sourceCode}
+          onCancel={onCancel}
+          onSave={onSave}
+          saveButtonLabel={isNewProgram(programId) ? "Create" : "Save"}
+        />
+      )}
     </div>
   );
 };

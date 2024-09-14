@@ -1,8 +1,8 @@
-import ProgramEditorPage from "./page/ProgramEditorPage";
-import HomePage from "./page/HomePage";
-import ProgramListPage from "./page/ProgramListPage";
+import ProgramEditorPage from "../page/ProgramEditorPage";
+import HomePage from "../page/HomePage";
+import ProgramListPage from "../page/ProgramListPage";
 import { Route, Switch } from "wouter";
-import HillPage from "./page/HillPage";
+import HillPage from "../page/HillPage";
 
 type Route = {
   navName?: string;

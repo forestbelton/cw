@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { ALL_ROUTES } from "../Router";
+import { ALL_ROUTES } from "./Router";
 
 const NavigationBar = () => (
   <div

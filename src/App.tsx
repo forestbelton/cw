@@ -1,4 +1,4 @@
-import { Router } from "./Router";
+import { Router } from "./components/Router";
 import NavigationBar from "./components/NavigationBar";
 
 const App = () => (
