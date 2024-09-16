@@ -1,76 +1,22 @@
+import { DEFAULT_MODE, DEFAULT_MODIFIERS, DEFAULT_OPERAND } from "./defaults";
 import {
   AnyRawInstruction,
+  BINOPS,
   Instruction,
-  Mode,
-  Modifier,
   Operation,
   RawExpr,
-  RawExprOp,
   RawInstruction,
-  RawOperand,
 } from "./insn";
 import * as parser from "./parser";
 import { Warrior } from "./warrior";
 
-type DefaultModifier = [string, string, Modifier];
-
 type Symbols = Record<string, number>;
-
-const BINOPS: Record<RawExprOp, (lhs: number, rhs: number) => number> = {
-  [RawExprOp.ADD]: (lhs, rhs) => lhs + rhs,
-  [RawExprOp.SUB]: (lhs, rhs) => lhs - rhs,
-  [RawExprOp.MUL]: (lhs, rhs) => lhs * rhs,
-  [RawExprOp.DIV]: (lhs, rhs) => Math.floor(lhs / rhs),
-  [RawExprOp.MOD]: (lhs, rhs) => lhs % rhs,
-};
-
-const DEFAULT_DATA_MODIFIERS: DefaultModifier[] = [
-  ["#", "#$@<>", Modifier.AB],
-  ["$@<>", "#", Modifier.B],
-  ["$@<>", "$@<>", Modifier.I],
-];
-
-const DEFAULT_ARITH_MODIFIERS: DefaultModifier[] = [
-  ["#", "#$@<>", Modifier.AB],
-  ["$@<>", "#$@<>", Modifier.AB],
-];
-
-const DEFAULT_BRANCH_MODIFIERS: DefaultModifier[] = [
-  ["#$@<>", "#$@<>", Modifier.B],
-];
-
-const DEFAULT_MODIFIERS: Record<Operation, DefaultModifier[]> = {
-  [Operation.DAT]: [["#$@<>", "#$@<>", Modifier.F]],
-  [Operation.MOV]: DEFAULT_DATA_MODIFIERS,
-  [Operation.ADD]: DEFAULT_ARITH_MODIFIERS,
-  [Operation.SUB]: DEFAULT_ARITH_MODIFIERS,
-  [Operation.MUL]: DEFAULT_ARITH_MODIFIERS,
-  [Operation.DIV]: DEFAULT_ARITH_MODIFIERS,
-  [Operation.MOD]: DEFAULT_ARITH_MODIFIERS,
-  [Operation.JMP]: DEFAULT_BRANCH_MODIFIERS,
-  [Operation.JMZ]: DEFAULT_BRANCH_MODIFIERS,
-  [Operation.JMN]: DEFAULT_BRANCH_MODIFIERS,
-  [Operation.DJN]: DEFAULT_BRANCH_MODIFIERS,
-  [Operation.CMP]: DEFAULT_DATA_MODIFIERS,
-  [Operation.SLT]: [
-    ["#", "#$@<>", Modifier.AB],
-    ["$@<>", "#$@<>", Modifier.B],
-  ],
-  [Operation.SPL]: DEFAULT_BRANCH_MODIFIERS,
-};
-
-const DEFAULT_MODE = Mode.Direct;
-
-const DEFAULT_OPERAND: RawOperand = {
-  mode: Mode.Immediate,
-  expr: 0,
-};
 
 export const assembleInstruction = (sourceCode: string): Instruction => {
   const raw = parser.parse(sourceCode, {
     startRule: "Instruction",
   }) as RawInstruction;
-  return assembleRawInstruction(raw);
+  return assembleRawInstruction(raw, 0, {});
 };
 
 export const assemble = (sourceCode: string): Warrior => {
@@ -78,10 +24,10 @@ export const assemble = (sourceCode: string): Warrior => {
   const raw = parser.parse(sourceCode, {
     startRule: "AssemblyFile",
   }) as AnyRawInstruction[];
-
   const symbols = getSymbols(raw);
-
   const code: Instruction[] = [];
+
+  let pc = 0;
   let startIndex = 0;
   let endFound = false;
 
@@ -92,21 +38,28 @@ export const assemble = (sourceCode: string): Warrior => {
     }
 
     switch (insn.type) {
+      // PC=0 here because labels should not be relative to PC
       case "ORG":
-        startIndex = evaluateExpr(insn.expr, symbols);
+        startIndex = evaluateExpr(insn.expr, 0, symbols);
         break;
 
       case "END":
         if (insn.expr !== null) {
-          startIndex = evaluateExpr(insn.expr, symbols);
+          startIndex = evaluateExpr(insn.expr, 0, symbols);
         }
         endFound = true;
         break;
 
       default:
-        code.push(assembleRawInstruction(insn, symbols));
+        code.push(assembleRawInstruction(insn, pc, symbols));
+        pc++;
         break;
     }
+  }
+
+  if (startIndex < 0 || startIndex >= code.length) {
+    // ORG/END operand outside of program
+    throw new Error();
   }
 
   return {
@@ -141,41 +94,42 @@ const getSymbols = (raw: AnyRawInstruction[]): Symbols => {
 
 const assembleRawInstruction = (
   raw: RawInstruction,
-  symbols: Symbols = {}
+  pc: number,
+  symbols: Symbols
 ): Instruction => {
-  let a = raw.a;
-  let b: RawOperand;
+  const { operation } = raw;
+  let { a, b } = raw;
 
-  if (raw.b === null) {
-    if (raw.operation === Operation.DAT) {
+  /** If there is only one operand associated with a DAT instruction, this
+   * operand is assembled into the B-mode and B-address fields, while #0 is
+   * assembled into the A-mode and A-address fields. For all other instructions
+   * with only one operand, this operand is assembled into the A-mode and
+   * A-address fields and #0 is assembled into the B-mode and B-address fields.
+   */
+  if (b === null) {
+    if (operation === Operation.DAT) {
       a = DEFAULT_OPERAND;
       b = raw.a;
     } else {
       b = DEFAULT_OPERAND;
     }
-  } else {
-    b = raw.b;
   }
 
-  const aValue = evaluateExpr(a.expr, symbols);
-  const bValue = evaluateExpr(b.expr, symbols);
-
+  // A missing (null or blank) mode assembles as '$' does.
   const aMode = a.mode || DEFAULT_MODE;
   const bMode = b.mode || DEFAULT_MODE;
 
+  /** If no modifier is present in the assembly instruction, the appropriate
+   * modifier is appended to the opcode. The appropriate modifier depends upon
+   * the opcode, the modes, and which standard to consider (ICWS'88 used here).
+   */
   let modifier = raw.modifier;
   if (modifier === null) {
-    for (const _default of DEFAULT_MODIFIERS[raw.operation]) {
-      if (!_default[0].includes(aMode)) {
-        continue;
+    for (const _default of DEFAULT_MODIFIERS[operation]) {
+      modifier = _default.match(aMode, bMode);
+      if (modifier !== null) {
+        break;
       }
-
-      if (!_default[1].includes(bMode)) {
-        continue;
-      }
-
-      modifier = _default[2];
-      break;
     }
 
     if (modifier === null) {
@@ -185,14 +139,20 @@ const assembleRawInstruction = (
   }
 
   return {
-    operation: raw.operation,
+    operation,
     modifier,
-    a: { mode: aMode, value: aValue },
-    b: { mode: bMode, value: bValue },
+    a: {
+      mode: aMode,
+      value: evaluateExpr(a.expr, pc, symbols),
+    },
+    b: {
+      mode: bMode,
+      value: evaluateExpr(b.expr, pc, symbols),
+    },
   };
 };
 
-const evaluateExpr = (expr: RawExpr, symbols: Symbols): number => {
+const evaluateExpr = (expr: RawExpr, pc: number, symbols: Symbols): number => {
   let value: number;
 
   if (typeof expr === "number") {
@@ -202,11 +162,11 @@ const evaluateExpr = (expr: RawExpr, symbols: Symbols): number => {
       // symbol not defined
       throw new Error();
     }
-    value = symbols[expr];
+    value = symbols[expr] - pc;
   } else {
     value = BINOPS[expr.op](
-      evaluateExpr(expr.lhs, symbols),
-      evaluateExpr(expr.rhs, symbols)
+      evaluateExpr(expr.lhs, pc, symbols),
+      evaluateExpr(expr.rhs, pc, symbols)
     );
   }
 

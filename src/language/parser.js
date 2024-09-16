@@ -288,15 +288,26 @@ function peg$parse(input, options) {
     }
 };
   var peg$f8 = function(lhs, rhs) {
+    const OP_NAMES = {
+        "+": "ADD",
+        "-": "SUB",
+    }
+
     return rhs.reduce((result, element) => ({
-        op: element[0],
+        op: OP_NAMES[element[0]],
         lhs: result,
         rhs: element[2],
     }), lhs)
 };
   var peg$f9 = function(lhs, rhs) {
+    const OP_NAMES = {
+        "*": "MUL",
+        "/": "DIV",
+        "%": "MOD",
+    }
+
     return rhs.reduce((result, element) => ({
-        op: element[0],
+        op: OP_NAMES[element[0]],
         lhs: result,
         rhs: element[2],
     }), lhs)
@@ -484,37 +495,34 @@ function peg$parse(input, options) {
   }
 
   function peg$parseLines() {
-    var s0, s1, s2, s3, s4, s5, s6, s7;
+    var s0, s1, s2, s3, s4, s5;
 
     s0 = peg$currPos;
-    s1 = peg$parseWS();
-    s2 = peg$parseLine();
-    s3 = [];
-    s4 = peg$currPos;
-    s5 = peg$parseNL();
-    if (s5 !== peg$FAILED) {
-      s6 = peg$parseWS();
-      s7 = peg$parseLine();
-      s4 = s7;
+    s1 = peg$parseLine();
+    s2 = [];
+    s3 = peg$currPos;
+    s4 = peg$parseNL();
+    if (s4 !== peg$FAILED) {
+      s5 = peg$parseLine();
+      s3 = s5;
     } else {
-      peg$currPos = s4;
-      s4 = peg$FAILED;
+      peg$currPos = s3;
+      s3 = peg$FAILED;
     }
-    while (s4 !== peg$FAILED) {
-      s3.push(s4);
-      s4 = peg$currPos;
-      s5 = peg$parseNL();
-      if (s5 !== peg$FAILED) {
-        s6 = peg$parseWS();
-        s7 = peg$parseLine();
-        s4 = s7;
+    while (s3 !== peg$FAILED) {
+      s2.push(s3);
+      s3 = peg$currPos;
+      s4 = peg$parseNL();
+      if (s4 !== peg$FAILED) {
+        s5 = peg$parseLine();
+        s3 = s5;
       } else {
-        peg$currPos = s4;
-        s4 = peg$FAILED;
+        peg$currPos = s3;
+        s3 = peg$FAILED;
       }
     }
     peg$savedPos = s0;
-    s0 = peg$f1(s2, s3);
+    s0 = peg$f1(s1, s2);
 
     return s0;
   }
