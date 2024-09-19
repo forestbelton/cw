@@ -184,6 +184,7 @@ export class VM {
     const b = this.resolveOperand(pc, "b");
 
     let update: TaskUpdate = {};
+    let cond = false;
 
     switch (insn.operation) {
       case Operation.DAT:
@@ -276,6 +277,36 @@ export class VM {
         update.nextPointer = (pc + (cond ? 2 : 1)) % this.core.length;
         break;
       case Operation.SLT:
+        switch (insn.modifier) {
+          case Modifier.A:
+            cond = a.insn.a.value < b.insn.a.value;
+            break;
+          case Modifier.B:
+            cond = a.insn.b.value < b.insn.b.value;
+            break;
+          case Modifier.AB:
+            cond = a.insn.a.value < b.insn.b.value;
+            break;
+          case Modifier.BA:
+            cond = a.insn.b.value < b.insn.a.value;
+            break;
+          case Modifier.F:
+            cond =
+              a.insn.a.value < b.insn.a.value &&
+              a.insn.b.value < b.insn.b.value;
+            break;
+          case Modifier.X:
+            cond =
+              a.insn.a.value < b.insn.b.value &&
+              a.insn.b.value < b.insn.a.value;
+            break;
+          case Modifier.I:
+            cond =
+              a.insn.a.value < b.insn.a.value &&
+              a.insn.b.value < b.insn.b.value;
+            break;
+        }
+        update.nextPointer = (pc + (cond ? 2 : 1)) % this.core.length;
         break;
       case Operation.SPL:
         update.nextPointer = (pc + 1) % this.core.length;
