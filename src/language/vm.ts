@@ -189,7 +189,6 @@ export class VM {
     switch (insn.operation) {
       case Operation.DAT:
         break;
-
       case Operation.MOV:
         const dest = this.getInsn(pc + b.writePointer);
         switch (insn.modifier) {
@@ -219,7 +218,6 @@ export class VM {
         }
         update.nextPointer = (pc + 1) % this.core.length;
         break;
-
       case Operation.ADD:
       case Operation.SUB:
       case Operation.MUL:
@@ -242,11 +240,27 @@ export class VM {
       case Operation.JMZ:
         break;
       case Operation.JMN:
+        switch (insn.modifier) {
+          case Modifier.A:
+          case Modifier.BA:
+            cond = b.insn.a.value !== 0;
+            break;
+          case Modifier.B:
+          case Modifier.AB:
+            cond = b.insn.b.value !== 0;
+            break;
+          case Modifier.F:
+          case Modifier.X:
+          case Modifier.I:
+            cond = b.insn.a.value !== 0 && b.insn.b.value !== 0;
+            break;
+        }
+        update.nextPointer =
+          (pc + (cond ? a.readPointer : 1)) % this.core.length;
         break;
       case Operation.DJN:
         break;
       case Operation.CMP:
-        let cond = false;
         switch (insn.modifier) {
           case Modifier.A:
             cond = a.insn.a.value === b.insn.a.value;
