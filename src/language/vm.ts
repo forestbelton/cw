@@ -239,6 +239,23 @@ export class VM {
         update.nextPointer = (pc + a.readPointer) % this.core.length;
         break;
       case Operation.JMZ:
+        switch (insn.modifier) {
+          case Modifier.A:
+          case Modifier.BA:
+            cond = b.insn.a.value === 0;
+            break;
+          case Modifier.B:
+          case Modifier.AB:
+            cond = b.insn.b.value === 0;
+            break;
+          case Modifier.F:
+          case Modifier.X:
+          case Modifier.I:
+            cond = b.insn.a.value === 0 && b.insn.b.value === 0;
+            break;
+        }
+        update.nextPointer =
+          (pc + (cond ? a.readPointer : 1)) % this.core.length;
         break;
       case Operation.JMN:
         switch (insn.modifier) {
