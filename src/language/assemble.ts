@@ -1,7 +1,7 @@
 import { DEFAULT_MODE, DEFAULT_MODIFIERS, DEFAULT_OPERAND } from "./defaults";
 import {
   AnyRawInstruction,
-  BINOPS,
+  ArithmeticOperation,
   Instruction,
   Operation,
   RawExpr,
@@ -11,6 +11,17 @@ import * as parser from "./parser";
 import { Warrior } from "./warrior";
 
 type Symbols = Record<string, number>;
+
+const BINOPS: Record<
+  ArithmeticOperation,
+  (lhs: number, rhs: number) => number
+> = {
+  [Operation.ADD]: (lhs, rhs) => lhs + rhs,
+  [Operation.SUB]: (lhs, rhs) => lhs - rhs,
+  [Operation.MUL]: (lhs, rhs) => lhs * rhs,
+  [Operation.DIV]: (lhs, rhs) => Math.floor(lhs / rhs),
+  [Operation.MOD]: (lhs, rhs) => lhs % rhs,
+};
 
 export const assembleInstruction = (sourceCode: string): Instruction => {
   const raw = parser.parse(sourceCode, {

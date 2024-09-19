@@ -20,33 +20,46 @@ export type Task = {
   instructionPointer: InstructionPointer;
 };
 
+export type TaskUpdate = {
+  nextPointer?: InstructionPointer;
+  newTaskPointer?: InstructionPointer;
+};
+
 export class DeadWarriorError extends Error {}
 
 export class VmWarrior {
+  id: number;
   nextID: TaskID;
   taskQueue: Task[];
+  maxNumTasks: number;
 
-  constructor(entryPoint: InstructionPointer) {
+  constructor(id: number, maxNumTasks: number, entryPoint: InstructionPointer) {
+    this.id = id;
     this.nextID = 0;
     this.taskQueue = [];
+    this.maxNumTasks = maxNumTasks;
     this.createTask(entryPoint);
   }
 
-  createTask(entryPoint: InstructionPointer) {
+  private createTask(entryPoint: InstructionPointer) {
     const task = { taskID: this.nextID++, instructionPointer: entryPoint };
     this.taskQueue.push(task);
   }
 
-  executeTask(f: (pc: InstructionPointer) => InstructionPointer | null) {
+  executeTask(f: (pc: InstructionPointer) => TaskUpdate) {
     const task = this.taskQueue.shift();
     if (typeof task === "undefined") {
       throw new DeadWarriorError();
     }
 
-    const nextInstructionPointer = f(task.instructionPointer);
-    if (nextInstructionPointer !== null) {
-      task.instructionPointer = nextInstructionPointer;
+    const update = f(task.instructionPointer);
+    if (typeof update.nextPointer !== "undefined") {
+      task.instructionPointer = update.nextPointer;
       this.taskQueue.push(task);
+    }
+
+    if (typeof update.newTaskPointer !== "undefined") {
+      this.createTask(update.newTaskPointer);
     }
   }
 

@@ -54,22 +54,6 @@ export type ArithmeticOperation =
   | Operation.DIV
   | Operation.MOD;
 
-export const BINOPS: Record<
-  ArithmeticOperation,
-  (lhs: number, rhs: number) => number
-> = {
-  [Operation.ADD]: (lhs, rhs) => lhs + rhs,
-  [Operation.SUB]: (lhs, rhs) => lhs - rhs,
-  [Operation.MUL]: (lhs, rhs) => lhs * rhs,
-  [Operation.DIV]: (lhs, rhs) => Math.floor(lhs / rhs),
-  [Operation.MOD]: (lhs, rhs) => lhs % rhs,
-};
-
-export const isDivOp = (
-  op: ArithmeticOperation
-): op is Operation.DIV | Operation.MOD =>
-  op === Operation.DIV || op === Operation.MOD;
-
 export type RawExpr =
   | number
   | string
