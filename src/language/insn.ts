@@ -108,3 +108,11 @@ export const cloneInsn = ({
   a: { ...a },
   b: { ...b },
 });
+
+export const insnEquals = (a: Instruction, b: Instruction) =>
+  a.operation === b.operation &&
+  a.modifier === b.modifier &&
+  a.a.mode === b.a.mode &&
+  a.a.value === b.a.value &&
+  a.b.mode === b.b.mode &&
+  a.b.value === b.b.value;

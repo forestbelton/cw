@@ -1,6 +1,7 @@
 import {
   ArithmeticOperation,
   cloneInsn,
+  insnEquals,
   Instruction,
   Mode,
   Modifier,
@@ -244,6 +245,35 @@ export class VM {
       case Operation.DJN:
         break;
       case Operation.CMP:
+        let cond = false;
+        switch (insn.modifier) {
+          case Modifier.A:
+            cond = a.insn.a.value === b.insn.a.value;
+            break;
+          case Modifier.B:
+            cond = a.insn.b.value === b.insn.b.value;
+            break;
+          case Modifier.AB:
+            cond = a.insn.a.value === b.insn.b.value;
+            break;
+          case Modifier.BA:
+            cond = a.insn.b.value === b.insn.a.value;
+            break;
+          case Modifier.F:
+            cond =
+              a.insn.a.value === b.insn.a.value &&
+              a.insn.b.value === b.insn.b.value;
+            break;
+          case Modifier.X:
+            cond =
+              a.insn.a.value === b.insn.b.value &&
+              a.insn.b.value === b.insn.a.value;
+            break;
+          case Modifier.I:
+            cond = insnEquals(a.insn, b.insn);
+            break;
+        }
+        update.nextPointer = (pc + (cond ? 2 : 1)) % this.core.length;
         break;
       case Operation.SLT:
         break;
