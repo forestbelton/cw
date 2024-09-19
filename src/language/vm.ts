@@ -185,6 +185,7 @@ export class VM {
 
     let update: TaskUpdate = {};
     let cond = false;
+    let ptr = 0;
 
     switch (insn.operation) {
       case Operation.DAT:
@@ -259,6 +260,27 @@ export class VM {
           (pc + (cond ? a.readPointer : 1)) % this.core.length;
         break;
       case Operation.DJN:
+        switch (insn.modifier) {
+          case Modifier.A:
+          case Modifier.BA:
+            ptr = (pc + b.writePointer) % this.core.length;
+            cond = --this.core[ptr].a.value !== 0;
+            break;
+          case Modifier.B:
+          case Modifier.AB:
+            ptr = (pc + b.writePointer) % this.core.length;
+            cond = --this.core[ptr].b.value !== 0;
+            break;
+          case Modifier.F:
+          case Modifier.X:
+          case Modifier.I:
+            ptr = (pc + b.writePointer) % this.core.length;
+            cond =
+              --this.core[ptr].a.value !== 0 && --this.core[ptr].b.value !== 0;
+            break;
+        }
+        update.nextPointer =
+          (pc + (cond ? a.readPointer : 1)) % this.core.length;
         break;
       case Operation.CMP:
         switch (insn.modifier) {
