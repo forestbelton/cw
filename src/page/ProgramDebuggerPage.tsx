@@ -9,6 +9,14 @@ import { prettyPrint } from "../language/insn";
 
 const PROGRAM_ID_REGEX = /^\/programs\/(.*)\/debugger$/;
 
+const leftPad = (n: number): string => {
+  let s = n.toString();
+  while (s.length < 4) {
+    s = "0" + s;
+  }
+  return s;
+};
+
 const ProgramDebuggerPage = () => {
   const [location, setLocation] = useLocation();
 
@@ -41,6 +49,14 @@ const ProgramDebuggerPage = () => {
     forceUpdate();
   }, [forceUpdate, vm]);
 
+  const executeRun = useCallback(() => {
+    const result = vm.execute();
+    console.log(result);
+    forceUpdate();
+  }, [vm]);
+
+  const taskQueue = vm.vmWarriors.length > 0 ? vm.vmWarriors[0].taskQueue : [];
+
   return (
     <div>
       {loading ? (
@@ -52,7 +68,7 @@ const ProgramDebuggerPage = () => {
               <div>Cycle Count: {vm.numCycles}</div>
               <div>
                 PCs:{" "}
-                {vm.vmWarriors[0].taskQueue
+                {taskQueue
                   .map(
                     ({ taskID, instructionPointer }) =>
                       `#${taskID} => ${instructionPointer}`
@@ -65,17 +81,20 @@ const ProgramDebuggerPage = () => {
                 .map(
                   (insn, instructionPointer) =>
                     `${
-                      vm.vmWarriors[0].taskQueue.find(
+                      taskQueue.find(
                         (task) => task.instructionPointer === instructionPointer
                       )
                         ? "*"
                         : " "
-                    } ${prettyPrint(insn)}`
+                    } ${leftPad(instructionPointer)} ${prettyPrint(insn)}`
                 )
                 .join("\n")}
             </pre>
           </div>
-          <Button label="Step" onClick={executeStep} />
+          <div style={{ display: "flex", gap: "1rem" }}>
+            <Button label="Step" onClick={executeStep} />
+            <Button label="Run" onClick={executeRun} />
+          </div>
         </div>
       )}
     </div>
