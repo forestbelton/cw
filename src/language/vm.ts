@@ -110,7 +110,13 @@ export class VM {
   executeCycle() {
     const executeStep = this.executeStep.bind(this);
     this.vmWarriors.forEach((warrior) => warrior.executeTask(executeStep));
-    this.vmWarriors = this.vmWarriors.filter((warrior) => !warrior.dead());
+    this.vmWarriors = this.vmWarriors.filter((warrior) => {
+      if (warrior.dead()) {
+        console.log(`warrior ${warrior.id} died at cycle ${this.numCycles}!`);
+        return false;
+      }
+      return true;
+    });
     this.numCycles++;
   }
 
