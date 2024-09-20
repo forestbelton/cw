@@ -25,16 +25,16 @@ Instruction = operation:OPCODE modifier:('.' @MODIFIER)? WS a:Operand b:(',' WS 
     }
 }
 
-EndInstruction = type:'END' WS expr:Expr? {
+EndInstruction = type:'END'i WS expr:Expr? {
     return {
-        type,
+        type: type.toUpperCase(),
         expr,
     }
 }
 
-OrgInstruction = type:'ORG' WS expr:Expr {
+OrgInstruction = type:'ORG'i WS expr:Expr {
     return {
-        type,
+        type: type.toUpperCase(),
         expr,
     }
 }
@@ -81,12 +81,12 @@ Term = LABEL / NUMBER / '(' WS @Expr ')' WS
 
 COMMENT = ';' [^\r\n]*
 
-OPCODE = 'DAT' / 'MOV' / 'ADD' / 'SUB' / 'MUL' / 'DIV' / 'MOD'
-	/ 'JMP' / 'JMZ' / 'JMN' / 'DJN' / 'CMP' / 'SLT' / 'SPL'
+OPCODE = code:('DAT'i / 'MOV'i / 'ADD'i / 'SUB'i / 'MUL'i / 'DIV'i / 'MOD'i
+	/ 'JMP'i / 'JMZ'i / 'JMN'i / 'DJN'i / 'CMP'i / 'SLT'i / 'SPL'i) { return code.toUpperCase() }
 
-MODIFIER = 'AB' / 'BA' / [ABFXI]
+MODIFIER = m:('AB'i / 'BA'i / [ABFXI]i) { return m.toUpperCase() }
 
-LABEL = !(OPCODE / 'ORG' / 'END') @$([a-zA-Z_] [a-zA-Z_0-9]*) WS
+LABEL = !(OPCODE / 'ORG'i / 'END'i) @$([a-zA-Z_] [a-zA-Z_0-9]*) WS
 
 NUMBER = digits:$([+-]? [0-9]+) WS {
     return parseInt(digits, 10)
