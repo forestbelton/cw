@@ -41,12 +41,14 @@ const BINOPS: Record<
 export class VM {
   options: VmOptions;
   warriors: Warrior[];
+  numCycles: number;
   core: Instruction[];
   vmWarriors: VmWarrior[];
 
   private constructor(options: VmOptions, warriors: Warrior[]) {
     this.options = options;
     this.warriors = warriors;
+    this.numCycles = 0;
     this.core = Array(options.coreSize).fill(options.initialInstruction);
 
     let nextPc = 0;
@@ -84,30 +86,31 @@ export class VM {
   }
 
   execute(): MatchResult {
-    let numCycles = 0;
+    this.numCycles = 0;
 
     while (
-      numCycles < this.options.cyclesBeforeTie &&
+      this.numCycles < this.options.cyclesBeforeTie &&
       this.vmWarriors.length > 1
     ) {
       this.executeCycle();
-      numCycles++;
     }
 
     if (
-      numCycles === this.options.cyclesBeforeTie ||
+      this.numCycles === this.options.cyclesBeforeTie ||
       this.vmWarriors.length === 0
     ) {
-      return { status: MatchStatus.TIE, numCycles };
+      return { status: MatchStatus.TIE, numCycles: this.numCycles };
     }
 
     const winnerID = this.vmWarriors[0].id;
-    return { status: MatchStatus.WIN, winnerID, numCycles };
+    return { status: MatchStatus.WIN, winnerID, numCycles: this.numCycles };
   }
 
   executeCycle() {
-    this.vmWarriors.forEach((warrior) => warrior.executeTask(this.executeStep));
+    const executeStep = this.executeStep.bind(this);
+    this.vmWarriors.forEach((warrior) => warrior.executeTask(executeStep));
     this.vmWarriors = this.vmWarriors.filter((warrior) => !warrior.dead());
+    this.numCycles++;
   }
 
   clamp(address: number, limit: number) {

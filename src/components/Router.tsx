@@ -3,6 +3,7 @@ import HomePage from "../page/HomePage";
 import ProgramListPage from "../page/ProgramListPage";
 import { Route, Switch } from "wouter";
 import HillPage from "../page/HillPage";
+import ProgramDebuggerPage from "../page/ProgramDebuggerPage";
 
 type Route = {
   navName?: string;
@@ -17,6 +18,9 @@ export const ALL_ROUTES: Record<string, Route> = {
   "/hills/primary": {
     navName: "Hill",
     component: HillPage,
+  },
+  "/programs/:id/debugger": {
+    component: ProgramDebuggerPage,
   },
   "/programs/:id": {
     component: ProgramEditorPage,

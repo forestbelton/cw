@@ -26,8 +26,16 @@ const ProgramListPage = () => {
         />
       </div>
       {programs.map((program) => (
-        <div key={program.id} style={{ marginTop: "1rem" }}>
+        <div
+          key={program.id}
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginTop: "1rem",
+          }}
+        >
           <Link to={`/programs/${program.id}`}>{program.id}</Link>
+          <Link to={`/programs/${program.id}/debugger`}>Debug</Link>
         </div>
       ))}
     </div>
