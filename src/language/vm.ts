@@ -90,7 +90,8 @@ export class VM {
 
     while (
       this.numCycles < this.options.cyclesBeforeTie &&
-      this.vmWarriors.length > 1
+      (this.vmWarriors.length > 1 ||
+        (this.vmWarriors.length > 0 && this.warriors.length === 1))
     ) {
       this.executeCycle();
     }
