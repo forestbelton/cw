@@ -25,9 +25,9 @@ const STUB_SOURCE_CODE = `;redcode
                                    ; the label "start" should be the
                                    ; first to execute.
      
-target  DAT.F   #0,     #0         ; Pointer to target instruction.
-start   ADD.AB  #4,     target     ; Increments pointer by step.
-        MOV.I   $0,    @target     ; Bombs target instruction.
+target  DAT.F   #0,      #0        ; Pointer to target instruction.
+start   ADD.AB  #4,       target   ; Increments pointer by step.
+        MOV.I   $target, @target   ; Bombs target instruction.
         JMP.A    start             ; Same as JMP.A -2.  Loops back to
                                    ; the instruction labelled "start".
         END
