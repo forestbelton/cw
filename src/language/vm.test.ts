@@ -1,6 +1,7 @@
 import { assemble, assembleInstruction } from "./assemble";
+import { InstructionPointer } from "./core";
 import { icw86Options } from "./options";
-import { InstructionPointer, VM } from "./vm";
+import { VM } from "./vm";
 
 // NB: Wow, this really sucks
 expect.extend({
@@ -65,10 +66,10 @@ expect.extend({
 const basicInsnTest = (_type: string, code: string, expected: string) => {
   const vm = VM.create(icw86Options, [assemble(code)]);
   const update = vm.executeStep(0);
-  expect(vm.core[2]).toStrictEqual(assembleInstruction(expected));
+  expect(vm.core.instructions[2]).toStrictEqual(assembleInstruction(expected));
 
   expect(update).toBeTaskUpdate({
-    nextPointer: new InstructionPointer(vm, 1),
+    nextPointer: new InstructionPointer(vm.core, 1),
   });
 };
 
@@ -225,12 +226,16 @@ describe("VM", () => {
         `),
         ]);
         expect(vm.executeStep(0)).toBeTaskUpdate({
-          nextPointer: new InstructionPointer(vm, 1),
+          nextPointer: new InstructionPointer(vm.core, 1),
         });
-        expect(vm.core[2]).toStrictEqual(assembleInstruction("DAT.F #3, #0"));
-        vm.core[1].a.value = 0;
+        expect(vm.core.instructions[2]).toStrictEqual(
+          assembleInstruction("DAT.F #3, #0")
+        );
+        vm.core.instructions[1].a.value = 0;
         expect(vm.executeStep(0)).toBeTaskUpdate({});
-        expect(vm.core[2]).toStrictEqual(assembleInstruction("DAT.F #3, #0"));
+        expect(vm.core.instructions[2]).toStrictEqual(
+          assembleInstruction("DAT.F #3, #0")
+        );
       });
       it("DIV.B", () => {
         const vm = VM.create(icw86Options, [
@@ -241,12 +246,16 @@ describe("VM", () => {
           `),
         ]);
         expect(vm.executeStep(0)).toBeTaskUpdate({
-          nextPointer: new InstructionPointer(vm, 1),
+          nextPointer: new InstructionPointer(vm.core, 1),
         });
-        expect(vm.core[2]).toStrictEqual(assembleInstruction("DAT.F #0, #3"));
-        vm.core[1].b.value = 0;
+        expect(vm.core.instructions[2]).toStrictEqual(
+          assembleInstruction("DAT.F #0, #3")
+        );
+        vm.core.instructions[1].b.value = 0;
         expect(vm.executeStep(0)).toStrictEqual({});
-        expect(vm.core[2]).toStrictEqual(assembleInstruction("DAT.F #0, #3"));
+        expect(vm.core.instructions[2]).toStrictEqual(
+          assembleInstruction("DAT.F #0, #3")
+        );
       });
       it("DIV.AB", () => {
         const vm = VM.create(icw86Options, [
@@ -257,12 +266,16 @@ describe("VM", () => {
           `),
         ]);
         expect(vm.executeStep(0)).toBeTaskUpdate({
-          nextPointer: new InstructionPointer(vm, 1),
+          nextPointer: new InstructionPointer(vm.core, 1),
         });
-        expect(vm.core[2]).toStrictEqual(assembleInstruction("DAT.F #0, #3"));
-        vm.core[1].a.value = 0;
+        expect(vm.core.instructions[2]).toStrictEqual(
+          assembleInstruction("DAT.F #0, #3")
+        );
+        vm.core.instructions[1].a.value = 0;
         expect(vm.executeStep(0)).toStrictEqual({});
-        expect(vm.core[2]).toStrictEqual(assembleInstruction("DAT.F #0, #3"));
+        expect(vm.core.instructions[2]).toStrictEqual(
+          assembleInstruction("DAT.F #0, #3")
+        );
       });
       it("DIV.BA", () => {
         const vm = VM.create(icw86Options, [
@@ -273,12 +286,16 @@ describe("VM", () => {
           `),
         ]);
         expect(vm.executeStep(0)).toBeTaskUpdate({
-          nextPointer: new InstructionPointer(vm, 1),
+          nextPointer: new InstructionPointer(vm.core, 1),
         });
-        expect(vm.core[2]).toStrictEqual(assembleInstruction("DAT.F #3, #0"));
-        vm.core[1].b.value = 0;
+        expect(vm.core.instructions[2]).toStrictEqual(
+          assembleInstruction("DAT.F #3, #0")
+        );
+        vm.core.instructions[1].b.value = 0;
         expect(vm.executeStep(0)).toStrictEqual({});
-        expect(vm.core[2]).toStrictEqual(assembleInstruction("DAT.F #3, #0"));
+        expect(vm.core.instructions[2]).toStrictEqual(
+          assembleInstruction("DAT.F #3, #0")
+        );
       });
       it("DIV.F", () => {
         const vm = VM.create(icw86Options, [
@@ -297,15 +314,19 @@ describe("VM", () => {
           `),
         ]);
         expect(vm.executeStep(0)).toBeTaskUpdate({
-          nextPointer: new InstructionPointer(vm, 1),
+          nextPointer: new InstructionPointer(vm.core, 1),
         });
-        expect(vm.core[2]).toStrictEqual(assembleInstruction("DAT.F #3, #2"));
+        expect(vm.core.instructions[2]).toStrictEqual(
+          assembleInstruction("DAT.F #3, #2")
+        );
 
         expect(vm.executeStep(3)).toStrictEqual({});
-        expect(vm.core[5]).toStrictEqual(assembleInstruction("DAT.F #3, #444"));
+        expect(vm.core.instructions[5]).toStrictEqual(
+          assembleInstruction("DAT.F #3, #444")
+        );
 
         expect(vm.executeStep(6)).toStrictEqual({});
-        expect(vm.core[8]).toStrictEqual(
+        expect(vm.core.instructions[8]).toStrictEqual(
           assembleInstruction("DAT.F #666, #444")
         );
       });
@@ -326,15 +347,19 @@ describe("VM", () => {
           `),
         ]);
         expect(vm.executeStep(0)).toBeTaskUpdate({
-          nextPointer: new InstructionPointer(vm, 1),
+          nextPointer: new InstructionPointer(vm.core, 1),
         });
-        expect(vm.core[2]).toStrictEqual(assembleInstruction("DAT.F #3, #2"));
+        expect(vm.core.instructions[2]).toStrictEqual(
+          assembleInstruction("DAT.F #3, #2")
+        );
 
         expect(vm.executeStep(3)).toStrictEqual({});
-        expect(vm.core[5]).toStrictEqual(assembleInstruction("DAT.F #666, #2"));
+        expect(vm.core.instructions[5]).toStrictEqual(
+          assembleInstruction("DAT.F #666, #2")
+        );
 
         expect(vm.executeStep(6)).toStrictEqual({});
-        expect(vm.core[8]).toStrictEqual(
+        expect(vm.core.instructions[8]).toStrictEqual(
           assembleInstruction("DAT.F #666, #444")
         );
       });
@@ -355,15 +380,19 @@ describe("VM", () => {
           `),
         ]);
         expect(vm.executeStep(0)).toBeTaskUpdate({
-          nextPointer: new InstructionPointer(vm, 1),
+          nextPointer: new InstructionPointer(vm.core, 1),
         });
-        expect(vm.core[2]).toStrictEqual(assembleInstruction("DAT.F #3, #3"));
+        expect(vm.core.instructions[2]).toStrictEqual(
+          assembleInstruction("DAT.F #3, #3")
+        );
 
         expect(vm.executeStep(3)).toStrictEqual({});
-        expect(vm.core[5]).toStrictEqual(assembleInstruction("DAT.F #3, #666"));
+        expect(vm.core.instructions[5]).toStrictEqual(
+          assembleInstruction("DAT.F #3, #666")
+        );
 
         expect(vm.executeStep(6)).toStrictEqual({});
-        expect(vm.core[8]).toStrictEqual(
+        expect(vm.core.instructions[8]).toStrictEqual(
           assembleInstruction("DAT.F #666, #666")
         );
       });
@@ -377,7 +406,7 @@ describe("VM", () => {
         `),
         ]);
         expect(vm.executeStep(1)).toBeTaskUpdate({
-          nextPointer: new InstructionPointer(vm, 0),
+          nextPointer: new InstructionPointer(vm.core, 0),
         });
       });
     });

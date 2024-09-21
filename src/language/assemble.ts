@@ -1,8 +1,9 @@
-import { DEFAULT_MODE, DEFAULT_MODIFIERS, DEFAULT_OPERAND } from "./defaults";
 import {
   AnyRawInstruction,
   ArithmeticOperation,
   Instruction,
+  Mode,
+  Modifier,
   Operation,
   RawExpr,
   RawInstruction,
@@ -24,17 +25,13 @@ const BINOPS: Record<
 };
 
 export const assembleInstruction = (sourceCode: string): Instruction => {
-  const raw = parser.parse(sourceCode, {
-    startRule: "Instruction",
-  }) as RawInstruction;
+  const raw = parser.parse(sourceCode, { startRule: "Instruction" });
   return assembleRawInstruction(raw, 0, {});
 };
 
 export const assemble = (sourceCode: string): Warrior => {
   // TODO: Perform EQU substitution
-  const raw = parser.parse(sourceCode, {
-    startRule: "AssemblyFile",
-  }) as AnyRawInstruction[];
+  const raw = parser.parse(sourceCode, { startRule: "AssemblyFile" });
   const symbols = getSymbols(raw);
   const code: Instruction[] = [];
 
@@ -118,17 +115,22 @@ const assembleRawInstruction = (
    * A-address fields and #0 is assembled into the B-mode and B-address fields.
    */
   if (b === null) {
+    const defaultOperand = {
+      mode: Mode.Immediate,
+      expr: 0,
+    };
+
     if (operation === Operation.DAT) {
-      a = DEFAULT_OPERAND;
+      a = defaultOperand;
       b = raw.a;
     } else {
-      b = DEFAULT_OPERAND;
+      b = defaultOperand;
     }
   }
 
   // A missing (null or blank) mode assembles as '$' does.
-  const aMode = a.mode || DEFAULT_MODE;
-  const bMode = b.mode || DEFAULT_MODE;
+  const aMode = a.mode || Mode.Direct;
+  const bMode = b.mode || Mode.Direct;
 
   /** If no modifier is present in the assembly instruction, the appropriate
    * modifier is appended to the opcode. The appropriate modifier depends upon
@@ -182,4 +184,105 @@ const evaluateExpr = (expr: RawExpr, pc: number, symbols: Symbols): number => {
   }
 
   return value;
+};
+
+type IncludesChar<
+  S extends string,
+  C extends string
+> = S extends `${string}${C}${string}` ? S : never;
+
+type ExcludesChar<
+  S extends string,
+  C extends string
+> = S extends `${infer H}${infer T}`
+  ? H extends C
+    ? never
+    : `${H}${ExcludesChar<T, C>}`
+  : S;
+
+type UniqueChars<S extends string> = S extends `${infer H}${infer T}`
+  ? `${H}${ExcludesChar<T, H>}`
+  : S;
+
+type CharsFrom<
+  S extends string,
+  A extends string
+> = S extends `${infer H}${infer T}`
+  ? A extends IncludesChar<A, H>
+    ? `${H}${CharsFrom<T, A>}`
+    : never
+  : S;
+
+type UsesCharSet<A extends string, S extends string> = CharsFrom<S, A> &
+  UniqueChars<S>;
+
+type ModeSet<S extends string> = UsesCharSet<"#$@<>", S>;
+
+type ExistsDefaultModifier = <U>(
+  f: <L extends string, R extends string>(
+    l: ModeSet<L>,
+    r: ModeSet<R>,
+    m: Modifier
+  ) => U
+) => U;
+
+class DefaultModifier {
+  some: ExistsDefaultModifier;
+
+  private constructor(some: ExistsDefaultModifier) {
+    this.some = some;
+  }
+
+  match(a: Mode, b: Mode) {
+    return this.some((l, r, m) => (l.includes(a) && r.includes(b) ? m : null));
+  }
+
+  static defaults<L extends string, R extends string>(
+    l: ModeSet<L>,
+    r: ModeSet<R>,
+    m: Modifier
+  ) {
+    return new DefaultModifier((f) => f(l, r, m));
+  }
+}
+
+const defaults = <L extends string, R extends string>(
+  l: ModeSet<L>,
+  r: ModeSet<R>,
+  m: Modifier
+): DefaultModifier => DefaultModifier.defaults(l, r, m);
+
+const DEFAULT_DATA_MODIFIERS: DefaultModifier[] = [
+  defaults("#", "#$@<>", Modifier.AB),
+  defaults("$@<>", "#", Modifier.B),
+  defaults("$@<>", "$@<>", Modifier.I),
+];
+
+const DEFAULT_ARITH_MODIFIERS: DefaultModifier[] = [
+  defaults("#", "#$@<>", Modifier.AB),
+  defaults("$@<>", "#$@<>", Modifier.AB),
+];
+
+const DEFAULT_BRANCH_MODIFIERS: DefaultModifier[] = [
+  defaults("#$@<>", "#$@<>", Modifier.B),
+];
+
+const DEFAULT_MODIFIERS: Record<Operation, DefaultModifier[]> = {
+  [Operation.DAT]: [defaults("#$@<>", "#$@<>", Modifier.F)],
+  [Operation.MOV]: DEFAULT_DATA_MODIFIERS,
+  [Operation.ADD]: DEFAULT_ARITH_MODIFIERS,
+  [Operation.SUB]: DEFAULT_ARITH_MODIFIERS,
+  [Operation.MUL]: DEFAULT_ARITH_MODIFIERS,
+  [Operation.DIV]: DEFAULT_ARITH_MODIFIERS,
+  [Operation.MOD]: DEFAULT_ARITH_MODIFIERS,
+  [Operation.JMP]: DEFAULT_BRANCH_MODIFIERS,
+  [Operation.JMZ]: DEFAULT_BRANCH_MODIFIERS,
+  [Operation.JMN]: DEFAULT_BRANCH_MODIFIERS,
+  [Operation.DJN]: DEFAULT_BRANCH_MODIFIERS,
+  [Operation.CMP]: DEFAULT_DATA_MODIFIERS,
+  [Operation.SLT]: [
+    defaults("#", "#$@<>", Modifier.AB),
+    defaults("$@<>", "#$@<>", Modifier.B),
+  ],
+  [Operation.SPL]: DEFAULT_BRANCH_MODIFIERS,
 };

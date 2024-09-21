@@ -1,7 +1,7 @@
+import { Core, InstructionPointer } from "./core";
 import {
   ArithmeticOperation,
   insnEquals,
-  Instruction,
   InstructionLens,
   Mode,
   Modifier,
@@ -37,46 +37,6 @@ const BINOPS: Record<
   [Operation.DIV]: (lhs, rhs) => (rhs !== 0 ? Math.floor(lhs / rhs) : null),
   [Operation.MOD]: (lhs, rhs) => (rhs !== 0 ? lhs % rhs : null),
 };
-
-export class InstructionPointer {
-  private vm: VM;
-  private address: number;
-
-  constructor(vm: VM, address: number) {
-    this.vm = vm;
-
-    while (address < 0) {
-      address += vm.core.length;
-    }
-    this.address = address % vm.core.length;
-  }
-
-  add(offset: number) {
-    return new InstructionPointer(this.vm, this.address + offset);
-  }
-
-  fetch() {
-    return this.vm.core[this.address];
-  }
-
-  set(insn: Instruction) {
-    this.vm.core[this.address] = insn;
-  }
-
-  equals(other: any) {
-    if (typeof other === "number") {
-      other = new InstructionPointer(this.vm, other);
-    }
-
-    return other instanceof InstructionPointer
-      ? this.address === other.address
-      : false;
-  }
-
-  toString() {
-    return this.address.toString();
-  }
-}
 
 export type TaskID = number;
 
@@ -165,14 +125,19 @@ export class VM {
   options: VmOptions;
   warriors: Warrior[];
   numCycles: number;
-  core: Instruction[];
+  core: Core;
   vmWarriors: VmWarrior[];
 
   private constructor(options: VmOptions, warriors: Warrior[]) {
     this.options = options;
     this.warriors = warriors;
     this.numCycles = 0;
-    this.core = Array(options.coreSize).fill(options.initialInstruction);
+
+    this.core = new Core(
+      Array(options.coreSize).fill(options.initialInstruction),
+      options.readDistance,
+      options.writeDistance
+    );
 
     let nextPc = 0;
     this.vmWarriors = warriors.map((warrior, warriorId) => {
@@ -180,10 +145,10 @@ export class VM {
 
       console.log(`Loading warrior ${warriorId} at PC=${nextPc}`);
       for (let index = 0; index < code.length; ++index) {
-        this.core[nextPc + index] = code[index];
+        this.core.instructions[nextPc + index] = code[index];
       }
 
-      const entryPoint = new InstructionPointer(this, nextPc + startIndex);
+      const entryPoint = new InstructionPointer(this.core, nextPc + startIndex);
 
       if (typeof options.separation === "number") {
         nextPc += options.separation;
@@ -246,7 +211,7 @@ export class VM {
   clamp(address: number, limit: number) {
     let result = address % limit;
     if (result > Math.floor(limit / 2)) {
-      result += this.core.length - limit;
+      result += this.core.size() - limit;
     }
     return result;
   }
@@ -266,8 +231,8 @@ export class VM {
         if (mode === Mode.PreDecrementIndirect) {
           const preDecrementInsn = pc.add(writePointer).fetch();
           preDecrementInsn.b.value =
-            (preDecrementInsn.b.value + this.core.length - 1) %
-            this.core.length;
+            (preDecrementInsn.b.value + this.core.size() - 1) %
+            this.core.size();
         }
         if (mode === Mode.PostIncrementIndirect) {
           postIncrementPointer = writePointer;
@@ -286,7 +251,7 @@ export class VM {
     if (typeof postIncrementPointer !== "undefined") {
       const postIncrementInsn = pc.add(postIncrementPointer).fetch();
       postIncrementInsn.b.value =
-        (postIncrementInsn.b.value + 1) % this.core.length;
+        (postIncrementInsn.b.value + 1) % this.core.size();
     }
 
     return {
@@ -298,7 +263,7 @@ export class VM {
 
   executeStep(pc: number | InstructionPointer): TaskUpdate {
     if (typeof pc === "number") {
-      pc = new InstructionPointer(this, pc);
+      pc = new InstructionPointer(this.core, pc);
     }
 
     const insn = pc.fetch();

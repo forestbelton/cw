@@ -77,7 +77,7 @@ const ProgramDebuggerPage = () => {
               </div>
             </div>
             <pre style={{ height: "500px", overflow: "scroll", width: "50%" }}>
-              {vm.core
+              {vm.core.instructions
                 .map(
                   (insn, instructionPointer) =>
                     `${
