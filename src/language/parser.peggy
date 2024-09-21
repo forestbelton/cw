@@ -15,10 +15,10 @@ LabeledInstruction = labels:LabelList? insn:(Instruction / EndInstruction / OrgI
     }
 }
 
-Instruction = operation:OPCODE modifier:('.' @MODIFIER)? WS a:Operand b:(',' WS @Operand)? {
+Instruction = opcode:OPCODE modifier:('.' @MODIFIER)? WS a:Operand b:(',' WS @Operand)? {
     return {
         type: null,
-        operation,
+        opcode,
         modifier,
         a,
         b,

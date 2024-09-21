@@ -1,13 +1,6 @@
 import { Core, InstructionPointer } from "./core";
-import {
-  ArithmeticOperation,
-  insnEquals,
-  InstructionLens,
-  Mode,
-  Modifier,
-  Operation,
-  prettyPrint,
-} from "./insn";
+import { ArithmeticOpcode, Mode, Modifier, Opcode } from "./insn";
+import { InstructionLens } from "./insn/lens";
 import { VmOptions } from "./options";
 import { Warrior } from "./warrior";
 
@@ -28,14 +21,14 @@ export type MatchResult =
     };
 
 const BINOPS: Record<
-  ArithmeticOperation,
+  ArithmeticOpcode,
   (lhs: number, rhs: number) => number | null
 > = {
-  [Operation.ADD]: (lhs, rhs) => lhs + rhs,
-  [Operation.SUB]: (lhs, rhs) => lhs - rhs,
-  [Operation.MUL]: (lhs, rhs) => lhs * rhs,
-  [Operation.DIV]: (lhs, rhs) => (rhs !== 0 ? Math.floor(lhs / rhs) : null),
-  [Operation.MOD]: (lhs, rhs) => (rhs !== 0 ? lhs % rhs : null),
+  [Opcode.ADD]: (lhs, rhs) => lhs + rhs,
+  [Opcode.SUB]: (lhs, rhs) => lhs - rhs,
+  [Opcode.MUL]: (lhs, rhs) => lhs * rhs,
+  [Opcode.DIV]: (lhs, rhs) => (rhs !== 0 ? Math.floor(lhs / rhs) : null),
+  [Opcode.MOD]: (lhs, rhs) => (rhs !== 0 ? lhs % rhs : null),
 };
 
 export type TaskID = number;
@@ -95,7 +88,7 @@ export class VmWarrior {
 
 export const executeArithmeticInstruction = (
   pc: InstructionPointer,
-  opcode: ArithmeticOperation,
+  opcode: ArithmeticOpcode,
   aValue: InstructionLens,
   bValue: InstructionLens
 ): TaskUpdate => {
@@ -267,7 +260,7 @@ export class VM {
     }
 
     const insn = pc.fetch();
-    console.log(`PC=${pc}: ${prettyPrint(insn)}`);
+    console.log(`PC=${pc}: ${insn}`);
 
     const a = this.resolveOperand(pc, "a");
     const b = this.resolveOperand(pc, "b");
@@ -304,10 +297,10 @@ export class VM {
         break;
     }
 
-    switch (insn.operation) {
-      case Operation.DAT:
+    switch (insn.opcode) {
+      case Opcode.DAT:
         break;
-      case Operation.MOV:
+      case Opcode.MOV:
         if (insn.modifier === Modifier.I) {
           b.writePointer.set(a.insn);
         } else {
@@ -315,48 +308,43 @@ export class VM {
         }
         update.nextPointer = pc.add(1);
         break;
-      case Operation.ADD:
-      case Operation.SUB:
-      case Operation.MUL:
-      case Operation.DIV:
-      case Operation.MOD:
-        update = executeArithmeticInstruction(
-          pc,
-          insn.operation,
-          aValue,
-          bValue
-        );
+      case Opcode.ADD:
+      case Opcode.SUB:
+      case Opcode.MUL:
+      case Opcode.DIV:
+      case Opcode.MOD:
+        update = executeArithmeticInstruction(pc, insn.opcode, aValue, bValue);
         break;
-      case Operation.JMP:
+      case Opcode.JMP:
         update.nextPointer = a.readPointer;
         break;
-      case Operation.JMZ:
+      case Opcode.JMZ:
         update.nextPointer = bValue.get().every((v) => v === 0)
           ? a.readPointer
           : pc.add(1);
         break;
-      case Operation.JMN:
+      case Opcode.JMN:
         update.nextPointer = bValue.get().every((v) => v !== 0)
           ? a.readPointer
           : pc.add(1);
         break;
-      case Operation.DJN:
+      case Opcode.DJN:
         update.nextPointer = bValue.update((v) => v - 1).every((v) => v !== 0)
           ? a.readPointer
           : pc.add(1);
         break;
-      case Operation.CMP:
+      case Opcode.CMP:
         cond =
           insn.modifier === Modifier.I
-            ? insnEquals(a.insn, b.insn)
+            ? a.insn.equals(b.insn)
             : aValue.zip(bValue).every(([a, b]) => a === b);
         update.nextPointer = pc.add(cond ? 2 : 1);
         break;
-      case Operation.SLT:
+      case Opcode.SLT:
         cond = aValue.zip(bValue).every(([a, b]) => a < b);
         update.nextPointer = pc.add(cond ? 2 : 1);
         break;
-      case Operation.SPL:
+      case Opcode.SPL:
         update.nextPointer = pc.add(1);
         update.newTaskPointer = a.writePointer;
         break;

@@ -257,10 +257,10 @@ function peg$parse(input, options) {
         ...insn,
     }
 };
-  var peg$f3 = function(operation, modifier, a, b) {
+  var peg$f3 = function(opcode, modifier, a, b) {
     return {
         type: null,
-        operation,
+        opcode,
         modifier,
         a,
         b,

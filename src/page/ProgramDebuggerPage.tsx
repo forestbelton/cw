@@ -5,7 +5,6 @@ import { icw86Options } from "../language/options";
 import { VM } from "../language/vm";
 import { assemble } from "../language/assemble";
 import Button from "../components/Button";
-import { prettyPrint } from "../language/insn";
 
 const PROGRAM_ID_REGEX = /^\/programs\/(.*)\/debugger$/;
 
@@ -86,7 +85,7 @@ const ProgramDebuggerPage = () => {
                       )
                         ? "*"
                         : " "
-                    } ${leftPad(instructionPointer)} ${prettyPrint(insn)}`
+                    } ${leftPad(instructionPointer)} ${insn}`
                 )
                 .join("\n")}
             </pre>

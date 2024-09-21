@@ -1,27 +1,16 @@
-import {
-  AnyRawInstruction,
-  ArithmeticOperation,
-  Instruction,
-  Mode,
-  Modifier,
-  Operation,
-  RawExpr,
-  RawInstruction,
-} from "./insn";
+import { ArithmeticOpcode, Instruction, Mode, Modifier, Opcode } from "./insn";
+import { AnyRawInstruction, RawExpr, RawInstruction } from "./insn/raw";
 import * as parser from "./parser";
 import { Warrior } from "./warrior";
 
 type Symbols = Record<string, number>;
 
-const BINOPS: Record<
-  ArithmeticOperation,
-  (lhs: number, rhs: number) => number
-> = {
-  [Operation.ADD]: (lhs, rhs) => lhs + rhs,
-  [Operation.SUB]: (lhs, rhs) => lhs - rhs,
-  [Operation.MUL]: (lhs, rhs) => lhs * rhs,
-  [Operation.DIV]: (lhs, rhs) => Math.floor(lhs / rhs),
-  [Operation.MOD]: (lhs, rhs) => lhs % rhs,
+const BINOPS: Record<ArithmeticOpcode, (lhs: number, rhs: number) => number> = {
+  [Opcode.ADD]: (lhs, rhs) => lhs + rhs,
+  [Opcode.SUB]: (lhs, rhs) => lhs - rhs,
+  [Opcode.MUL]: (lhs, rhs) => lhs * rhs,
+  [Opcode.DIV]: (lhs, rhs) => Math.floor(lhs / rhs),
+  [Opcode.MOD]: (lhs, rhs) => lhs % rhs,
 };
 
 export const assembleInstruction = (sourceCode: string): Instruction => {
@@ -105,7 +94,7 @@ const assembleRawInstruction = (
   pc: number,
   symbols: Symbols
 ): Instruction => {
-  const { operation } = raw;
+  const { opcode } = raw;
   let { a, b } = raw;
 
   /** If there is only one operand associated with a DAT instruction, this
@@ -120,7 +109,7 @@ const assembleRawInstruction = (
       expr: 0,
     };
 
-    if (operation === Operation.DAT) {
+    if (opcode === Opcode.DAT) {
       a = defaultOperand;
       b = raw.a;
     } else {
@@ -138,7 +127,7 @@ const assembleRawInstruction = (
    */
   let modifier = raw.modifier;
   if (modifier === null) {
-    for (const _default of DEFAULT_MODIFIERS[operation]) {
+    for (const _default of DEFAULT_MODIFIERS[opcode]) {
       modifier = _default.match(aMode, bMode);
       if (modifier !== null) {
         break;
@@ -151,18 +140,18 @@ const assembleRawInstruction = (
     }
   }
 
-  return {
-    operation,
+  return new Instruction(
+    opcode,
     modifier,
-    a: {
+    {
       mode: aMode,
       value: evaluateExpr(a.expr, pc, symbols),
     },
-    b: {
+    {
       mode: bMode,
       value: evaluateExpr(b.expr, pc, symbols),
-    },
-  };
+    }
+  );
 };
 
 const evaluateExpr = (expr: RawExpr, pc: number, symbols: Symbols): number => {
@@ -267,22 +256,22 @@ const DEFAULT_BRANCH_MODIFIERS: DefaultModifier[] = [
   defaults("#$@<>", "#$@<>", Modifier.B),
 ];
 
-const DEFAULT_MODIFIERS: Record<Operation, DefaultModifier[]> = {
-  [Operation.DAT]: [defaults("#$@<>", "#$@<>", Modifier.F)],
-  [Operation.MOV]: DEFAULT_DATA_MODIFIERS,
-  [Operation.ADD]: DEFAULT_ARITH_MODIFIERS,
-  [Operation.SUB]: DEFAULT_ARITH_MODIFIERS,
-  [Operation.MUL]: DEFAULT_ARITH_MODIFIERS,
-  [Operation.DIV]: DEFAULT_ARITH_MODIFIERS,
-  [Operation.MOD]: DEFAULT_ARITH_MODIFIERS,
-  [Operation.JMP]: DEFAULT_BRANCH_MODIFIERS,
-  [Operation.JMZ]: DEFAULT_BRANCH_MODIFIERS,
-  [Operation.JMN]: DEFAULT_BRANCH_MODIFIERS,
-  [Operation.DJN]: DEFAULT_BRANCH_MODIFIERS,
-  [Operation.CMP]: DEFAULT_DATA_MODIFIERS,
-  [Operation.SLT]: [
+const DEFAULT_MODIFIERS: Record<Opcode, DefaultModifier[]> = {
+  [Opcode.DAT]: [defaults("#$@<>", "#$@<>", Modifier.F)],
+  [Opcode.MOV]: DEFAULT_DATA_MODIFIERS,
+  [Opcode.ADD]: DEFAULT_ARITH_MODIFIERS,
+  [Opcode.SUB]: DEFAULT_ARITH_MODIFIERS,
+  [Opcode.MUL]: DEFAULT_ARITH_MODIFIERS,
+  [Opcode.DIV]: DEFAULT_ARITH_MODIFIERS,
+  [Opcode.MOD]: DEFAULT_ARITH_MODIFIERS,
+  [Opcode.JMP]: DEFAULT_BRANCH_MODIFIERS,
+  [Opcode.JMZ]: DEFAULT_BRANCH_MODIFIERS,
+  [Opcode.JMN]: DEFAULT_BRANCH_MODIFIERS,
+  [Opcode.DJN]: DEFAULT_BRANCH_MODIFIERS,
+  [Opcode.CMP]: DEFAULT_DATA_MODIFIERS,
+  [Opcode.SLT]: [
     defaults("#", "#$@<>", Modifier.AB),
     defaults("$@<>", "#$@<>", Modifier.B),
   ],
-  [Operation.SPL]: DEFAULT_BRANCH_MODIFIERS,
+  [Opcode.SPL]: DEFAULT_BRANCH_MODIFIERS,
 };
