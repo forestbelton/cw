@@ -1,8 +1,8 @@
 import {
   ArithmeticOperation,
-  cloneInsn,
   insnEquals,
   Instruction,
+  InstructionLens,
   Mode,
   Modifier,
   Operation,
@@ -180,7 +180,7 @@ export class VM {
     }
 
     return {
-      insn: cloneInsn(this.getInsn(pc + readPointer)),
+      insn: this.getInsn(pc + readPointer),
       readPointer,
       writePointer,
     };
@@ -195,37 +195,44 @@ export class VM {
 
     let update: TaskUpdate = {};
     let cond = false;
-    let ptr = 0;
+
+    let aValue, bValue: InstructionLens;
+    switch (insn.modifier) {
+      case Modifier.A:
+        aValue = InstructionLens.aNumber(a.insn);
+        bValue = InstructionLens.aNumber(b.insn);
+        break;
+      case Modifier.B:
+        aValue = InstructionLens.bNumber(a.insn);
+        bValue = InstructionLens.bNumber(b.insn);
+        break;
+      case Modifier.AB:
+        aValue = InstructionLens.aNumber(a.insn);
+        bValue = InstructionLens.bNumber(b.insn);
+        break;
+      case Modifier.BA:
+        aValue = InstructionLens.bNumber(a.insn);
+        bValue = InstructionLens.aNumber(b.insn);
+        break;
+      case Modifier.F:
+      case Modifier.I:
+        aValue = InstructionLens.abNumber(a.insn);
+        bValue = InstructionLens.abNumber(b.insn);
+        break;
+      case Modifier.X:
+        aValue = InstructionLens.abNumber(a.insn);
+        bValue = InstructionLens.baNumber(b.insn);
+        break;
+    }
 
     switch (insn.operation) {
       case Operation.DAT:
         break;
       case Operation.MOV:
-        const dest = this.getInsn(pc + b.writePointer);
-        switch (insn.modifier) {
-          case Modifier.A:
-            dest.a.value = a.insn.a.value;
-            break;
-          case Modifier.B:
-            dest.b.value = a.insn.b.value;
-            break;
-          case Modifier.AB:
-            dest.b.value = a.insn.a.value;
-            break;
-          case Modifier.BA:
-            dest.a.value = a.insn.b.value;
-            break;
-          case Modifier.F:
-            dest.a.value = a.insn.a.value;
-            dest.b.value = a.insn.b.value;
-            break;
-          case Modifier.X:
-            dest.b.value = a.insn.a.value;
-            dest.a.value = a.insn.b.value;
-            break;
-          case Modifier.I:
-            this.setInsn(pc + b.writePointer, a.insn);
-            break;
+        if (insn.modifier === Modifier.I) {
+          this.setInsn(pc + b.writePointer, a.insn);
+        } else {
+          bValue.set(aValue.get());
         }
         update.nextPointer = (pc + 1) % this.core.length;
         break;
@@ -234,13 +241,18 @@ export class VM {
       case Operation.MUL:
       case Operation.DIV:
       case Operation.MOD:
-        const shouldQueue = this.executeArithOp(
-          insn.operation,
-          insn.modifier,
-          this.getInsn(pc + b.writePointer),
-          a.insn,
-          b.insn
-        );
+        let shouldQueue = true;
+        const as = aValue.get();
+        const bs = bValue.get();
+        for (let i = 0; i < bs.length; ++i) {
+          const result = BINOPS[insn.operation](bs[i], as[i]);
+          if (result === null) {
+            shouldQueue = false;
+            break;
+          }
+          bs[i] = result;
+          bValue.set(bs);
+        }
         if (shouldQueue) {
           update.nextPointer = (pc + 1) % this.core.length;
         }
@@ -249,126 +261,29 @@ export class VM {
         update.nextPointer = (pc + a.readPointer) % this.core.length;
         break;
       case Operation.JMZ:
-        switch (insn.modifier) {
-          case Modifier.A:
-          case Modifier.BA:
-            cond = b.insn.a.value === 0;
-            break;
-          case Modifier.B:
-          case Modifier.AB:
-            cond = b.insn.b.value === 0;
-            break;
-          case Modifier.F:
-          case Modifier.X:
-          case Modifier.I:
-            cond = b.insn.a.value === 0 && b.insn.b.value === 0;
-            break;
-        }
+        cond = bValue.get().every((v) => v === 0);
         update.nextPointer =
           (pc + (cond ? a.readPointer : 1)) % this.core.length;
         break;
       case Operation.JMN:
-        switch (insn.modifier) {
-          case Modifier.A:
-          case Modifier.BA:
-            cond = b.insn.a.value !== 0;
-            break;
-          case Modifier.B:
-          case Modifier.AB:
-            cond = b.insn.b.value !== 0;
-            break;
-          case Modifier.F:
-          case Modifier.X:
-          case Modifier.I:
-            cond = b.insn.a.value !== 0 && b.insn.b.value !== 0;
-            break;
-        }
+        cond = bValue.get().every((v) => v !== 0);
         update.nextPointer =
           (pc + (cond ? a.readPointer : 1)) % this.core.length;
         break;
       case Operation.DJN:
-        switch (insn.modifier) {
-          case Modifier.A:
-          case Modifier.BA:
-            ptr = (pc + b.writePointer) % this.core.length;
-            cond = --this.core[ptr].a.value !== 0;
-            break;
-          case Modifier.B:
-          case Modifier.AB:
-            ptr = (pc + b.writePointer) % this.core.length;
-            cond = --this.core[ptr].b.value !== 0;
-            break;
-          case Modifier.F:
-          case Modifier.X:
-          case Modifier.I:
-            ptr = (pc + b.writePointer) % this.core.length;
-            cond =
-              --this.core[ptr].a.value !== 0 && --this.core[ptr].b.value !== 0;
-            break;
-        }
+        cond = bValue.update((v) => v - 1).every((v) => v !== 0);
         update.nextPointer =
           (pc + (cond ? a.readPointer : 1)) % this.core.length;
         break;
       case Operation.CMP:
-        switch (insn.modifier) {
-          case Modifier.A:
-            cond = a.insn.a.value === b.insn.a.value;
-            break;
-          case Modifier.B:
-            cond = a.insn.b.value === b.insn.b.value;
-            break;
-          case Modifier.AB:
-            cond = a.insn.a.value === b.insn.b.value;
-            break;
-          case Modifier.BA:
-            cond = a.insn.b.value === b.insn.a.value;
-            break;
-          case Modifier.F:
-            cond =
-              a.insn.a.value === b.insn.a.value &&
-              a.insn.b.value === b.insn.b.value;
-            break;
-          case Modifier.X:
-            cond =
-              a.insn.a.value === b.insn.b.value &&
-              a.insn.b.value === b.insn.a.value;
-            break;
-          case Modifier.I:
-            cond = insnEquals(a.insn, b.insn);
-            break;
-        }
+        cond =
+          insn.modifier === Modifier.I
+            ? insnEquals(a.insn, b.insn)
+            : aValue.zip(bValue).every(([a, b]) => a === b);
         update.nextPointer = (pc + (cond ? 2 : 1)) % this.core.length;
         break;
       case Operation.SLT:
-        switch (insn.modifier) {
-          case Modifier.A:
-            cond = a.insn.a.value < b.insn.a.value;
-            break;
-          case Modifier.B:
-            cond = a.insn.b.value < b.insn.b.value;
-            break;
-          case Modifier.AB:
-            cond = a.insn.a.value < b.insn.b.value;
-            break;
-          case Modifier.BA:
-            cond = a.insn.b.value < b.insn.a.value;
-            break;
-          case Modifier.F:
-            cond =
-              a.insn.a.value < b.insn.a.value &&
-              a.insn.b.value < b.insn.b.value;
-            break;
-          case Modifier.X:
-            cond =
-              a.insn.a.value < b.insn.b.value &&
-              a.insn.b.value < b.insn.a.value;
-            break;
-          case Modifier.I:
-            cond =
-              a.insn.a.value < b.insn.a.value &&
-              a.insn.b.value < b.insn.b.value;
-            break;
-        }
+        cond = aValue.zip(bValue).every(([a, b]) => a < b);
         update.nextPointer = (pc + (cond ? 2 : 1)) % this.core.length;
         break;
       case Operation.SPL:
@@ -378,68 +293,5 @@ export class VM {
     }
 
     return update;
-  }
-
-  executeArithOp(
-    operation: ArithmeticOperation,
-    modifier: Modifier,
-    dest: Instruction,
-    a: Instruction,
-    b: Instruction
-  ) {
-    const op = BINOPS[operation];
-    let result: number | null = null;
-    switch (modifier) {
-      case Modifier.A:
-        result = op(b.a.value, a.a.value);
-        if (result !== null) {
-          dest.a.value = result;
-        }
-        break;
-      case Modifier.B:
-        result = op(b.b.value, a.b.value);
-        if (result !== null) {
-          dest.b.value = result;
-        }
-        break;
-      case Modifier.AB:
-        result = op(b.b.value, a.a.value);
-        if (result !== null) {
-          dest.b.value = result;
-        }
-        break;
-      case Modifier.BA:
-        result = op(b.a.value, a.b.value);
-        if (result !== null) {
-          dest.a.value = result;
-        }
-        break;
-      case Modifier.F:
-      case Modifier.I:
-        result = op(b.a.value, a.a.value);
-        if (result === null) {
-          break;
-        }
-        dest.a.value = result;
-        result = op(b.b.value, a.b.value);
-        if (result === null) {
-          break;
-        }
-        dest.b.value = result;
-        break;
-      case Modifier.X:
-        result = op(b.b.value, a.a.value);
-        if (result === null) {
-          break;
-        }
-        dest.b.value = result;
-        result = op(b.a.value, a.b.value);
-        if (result === null) {
-          break;
-        }
-        dest.a.value = result;
-        break;
-    }
-    return result !== null;
   }
 }
