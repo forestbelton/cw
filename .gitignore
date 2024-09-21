@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# JS artifacts
+src/language/assemble/parser/index.js
