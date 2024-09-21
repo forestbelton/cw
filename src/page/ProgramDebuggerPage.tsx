@@ -81,8 +81,8 @@ const ProgramDebuggerPage = () => {
                 .map(
                   (insn, instructionPointer) =>
                     `${
-                      taskQueue.find(
-                        (task) => task.instructionPointer === instructionPointer
+                      taskQueue.find((task) =>
+                        task.instructionPointer.equals(instructionPointer)
                       )
                         ? "*"
                         : " "
