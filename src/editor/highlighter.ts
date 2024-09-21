@@ -21,10 +21,10 @@ const createTokenHighlighter = (tokenRegexps: Record<string, RegExp>) =>
 export const cwHighlighter = createTokenHighlighter({
   arithmeticOperator: /^\b[*/%+-]\b/,
   comment: /^;[^\n]*/,
-  unit: /^\b(AB|BA|[ABFXI])\b/,
+  unit: /^\b(AB|BA|[ABFXI])\b/i,
   number: /^[+-]?[0-9]+\b/,
   keyword:
-    /^\b(DAT|MOV|ADD|SUB|MUL|DIV|MOD|JMP|JMZ|JMN|DJN|CMP|SLT|SPL|ORG|EQU|END)\b/,
+    /^\b(DAT|MOV|ADD|SUB|MUL|DIV|MOD|JMP|JMZ|JMN|DJN|CMP|SLT|SPL|ORG|EQU|END)\b/i,
   name: /^\b[a-zA-Z_][a-zA-Z_0-9]*\b/,
   punctuation: /^\./,
   paren: /^\b[()]\b/,
