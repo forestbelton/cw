@@ -1,4 +1,10 @@
-import { ArithmeticOpcode, Instruction, Modifier, Opcode } from "../insn";
+import {
+  ArithmeticOpcode,
+  Instruction,
+  Modifier,
+  Opcode,
+  isArithmeticOpcode,
+} from "../insn";
 import { InstructionLens } from "../insn/lens";
 import { InstructionPointer } from "./core";
 import { TaskUpdate } from "./warrior";
@@ -35,6 +41,11 @@ const BINOPS: Record<
 
 const handleArithmetic: InstructionHandler = (ctx) => {
   const { pc, aValue, bValue, insn } = ctx;
+
+  if (!isArithmeticOpcode(insn.opcode)) {
+    // Will only occur if handler installed on non-arithmetic opcode (never)
+    throw new Error();
+  }
 
   const as = aValue.get();
   const bs = bValue.get();

@@ -53,6 +53,19 @@ export type ArithmeticOpcode =
   | Opcode.DIV
   | Opcode.MOD;
 
+const ALL_ARITHMETIC_OPCODES: Partial<Record<Opcode, true>> = {
+  [Opcode.ADD]: true,
+  [Opcode.SUB]: true,
+  [Opcode.MUL]: true,
+  [Opcode.DIV]: true,
+  [Opcode.MOD]: true,
+};
+
+export const isArithmeticOpcode = (
+  opcode: Opcode
+): opcode is ArithmeticOpcode =>
+  typeof ALL_ARITHMETIC_OPCODES[opcode] !== "undefined";
+
 export type Operand = {
   mode: Mode;
   value: number;
