@@ -54,7 +54,7 @@ const ProgramDebuggerPage = () => {
     forceUpdate();
   }, [vm]);
 
-  const taskQueue = vm.vmWarriors.length > 0 ? vm.vmWarriors[0].taskQueue : [];
+  const taskQueue = vm.warriors.length > 0 ? vm.warriors[0].taskQueue : [];
 
   return (
     <div>

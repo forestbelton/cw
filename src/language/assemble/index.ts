@@ -1,7 +1,7 @@
 import { Instruction, Mode, Opcode } from "../insn";
 import { RawInstruction } from "../insn/raw";
 import * as parser from "./parser";
-import { Warrior } from "../warrior";
+import { Program } from "../vm/program";
 import { DEFAULT_MODIFIERS } from "./modifier";
 import { Symbols, evaluateExpr, getSymbols } from "./utils";
 
@@ -10,7 +10,7 @@ export const assembleInstruction = (sourceCode: string): Instruction => {
   return assembleRawInstruction(raw, 0, {});
 };
 
-export const assemble = (sourceCode: string): Warrior => {
+export const assemble = (sourceCode: string): Program => {
   // TODO: Perform EQU substitution
   const raw = parser.parse(sourceCode, { startRule: "AssemblyFile" });
   const symbols = getSymbols(raw);
