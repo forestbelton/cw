@@ -1,4 +1,4 @@
-import { assemble, assembleInstruction } from "./assemble";
+import { assemble, assembleInstruction } from "../assemble";
 import { InstructionPointer } from "./core";
 import { icw86Options } from "./options";
 import { VM } from "./vm";

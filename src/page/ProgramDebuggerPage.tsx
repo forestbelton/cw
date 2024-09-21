@@ -1,10 +1,10 @@
+import { useCallback, useEffect, useReducer, useState } from "react";
 import { Redirect, useLocation } from "wouter";
 import { API_CLIENT } from "../api";
-import { useCallback, useEffect, useReducer, useState } from "react";
-import { icw86Options } from "../language/options";
-import { VM } from "../language/vm";
-import { assemble } from "../language/assemble";
 import Button from "../components/Button";
+import { assemble } from "../language/assemble";
+import { icw86Options } from "../language/vm/options";
+import { VM } from "../language/vm/vm";
 
 const PROGRAM_ID_REGEX = /^\/programs\/(.*)\/debugger$/;
 

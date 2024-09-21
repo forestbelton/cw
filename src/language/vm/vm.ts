@@ -1,8 +1,8 @@
 import { Core, InstructionPointer } from "./core";
-import { ArithmeticOpcode, Mode, Modifier, Opcode } from "./insn";
-import { InstructionLens } from "./insn/lens";
+import { ArithmeticOpcode, Mode, Modifier, Opcode } from "../insn";
+import { InstructionLens } from "../insn/lens";
 import { VmOptions } from "./options";
-import { Warrior } from "./warrior";
+import { Warrior } from "../warrior";
 
 export enum MatchStatus {
   WIN = "WIN",

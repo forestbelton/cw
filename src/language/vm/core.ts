@@ -1,4 +1,4 @@
-import { Instruction } from "./insn";
+import { Instruction } from "../insn";
 
 export class Core {
   instructions: Instruction[];

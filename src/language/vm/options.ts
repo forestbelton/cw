@@ -1,5 +1,5 @@
-import { assembleInstruction } from "./assemble";
-import { Instruction } from "./insn";
+import { assembleInstruction } from "../assemble";
+import { Instruction } from "../insn";
 
 export type RandomSeparation = "RANDOM";
 
