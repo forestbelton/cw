@@ -5,6 +5,7 @@ import Button from "../components/Button";
 import { assemble } from "../language/assemble";
 import { icw86Options } from "../language/vm/options";
 import { VM } from "../language/vm/vm";
+import MemoryView from "../components/MemoryView";
 
 const PROGRAM_ID_REGEX = /^\/programs\/(.*)\/debugger$/;
 
@@ -62,6 +63,7 @@ const ProgramDebuggerPage = () => {
         <span>Loading...</span>
       ) : (
         <div>
+          <MemoryView vm={vm} cycle={vm.numCycles} />
           <div style={{ display: "flex" }}>
             <div style={{ width: "50%" }}>
               <div>Cycle Count: {vm.numCycles}</div>
