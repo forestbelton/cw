@@ -92,7 +92,9 @@ const MemoryView = ({ vm, cycle }: MemoryViewProps) => {
     }
   }, [vm, cycle]);
 
-  const style: CSSProperties = {};
+  const style: CSSProperties = {
+    marginTop: "10px",
+  };
 
   return (
     <div ref={containerRef} style={{ width: "100%" }}>
@@ -105,18 +107,20 @@ const iDiv = (a: number, b: number) => Math.floor(a / b);
 
 const getParams = (constraints: { coreSize: number; canvasWidth: number }) => {
   console.log({ constraints });
-  const cellSize = 4;
+  const cellSize = 6;
   const cellPadding = 4;
 
-  const cellsPerRow = iDiv(
+  let cellsPerRow = iDiv(
     constraints.canvasWidth - cellPadding,
     cellSize + cellPadding
   );
-  // I wanted to have each row have the same number of cells but then the display ends up very tall.
-  //
-  // while (constraints.coreSize % cellsPerRow !== 0) {
-  //   cellsPerRow--;
-  // }
+
+  // This makes everything align nicely but it can cause the height to get blown up
+  // depending on the container width.
+  // There's probably some smart way to do this but I couldn't figure it out.
+  while (constraints.coreSize % cellsPerRow !== 0) {
+    cellsPerRow--;
+  }
 
   console.log({ constraints });
 

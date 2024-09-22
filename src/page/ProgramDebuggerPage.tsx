@@ -63,7 +63,6 @@ const ProgramDebuggerPage = () => {
         <span>Loading...</span>
       ) : (
         <div>
-          <MemoryView vm={vm} cycle={vm.numCycles} />
           <div style={{ display: "flex" }}>
             <div style={{ width: "50%" }}>
               <div>Cycle Count: {vm.numCycles}</div>
@@ -96,6 +95,7 @@ const ProgramDebuggerPage = () => {
             <Button label="Step" onClick={executeStep} />
             <Button label="Run" onClick={executeRun} />
           </div>
+          <MemoryView vm={vm} cycle={vm.numCycles} />
         </div>
       )}
     </div>
